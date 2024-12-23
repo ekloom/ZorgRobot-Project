@@ -33,7 +33,7 @@ namespace RobotProject.ControlSystems
             int steps = 100; // Number of steps in the curve
             short targetSpeed = 0;
 
-            if (CurrentMotorSpeedL > 0 && CurrentMotorSpeedR > 0)
+            if (CurrentMotorSpeedL > 10 && CurrentMotorSpeedR > 10)
             {
                 for (int i = 0; i <= steps; i++)
                 {
@@ -44,6 +44,7 @@ namespace RobotProject.ControlSystems
                     // Wait before updating the speed again
                     Robot.Motors(CurrentMotorSpeedL, CurrentMotorSpeedR);
                     Console.WriteLine("Motor : {0}, Motor : {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
+                    if (CurrentMotorSpeedL == targetSpeed && CurrentMotorSpeedR == targetSpeed) i = steps;
                     Robot.Wait(50);
                 }
 
