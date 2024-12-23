@@ -19,12 +19,12 @@ namespace RobotProject.ControlSystems
             distanceSensor = new Ultrasonic(UltrasonicPinNumber);
             scanIntervalTimer = new PeriodTimer(scanInterval);
 
-            detectionThreshold = 20;
+            detectionThreshold = 50;
         }
 
         public bool IsPathClear()
         {
-            if (GetDistanceToSensor() < detectionThreshold)
+            if (GetDistanceToSensor() >= detectionThreshold)
             {
                 return true;
             }
@@ -43,7 +43,6 @@ namespace RobotProject.ControlSystems
             {
                 // Sets the distance field to the current detected distance from the robot
                 _distance = distanceSensor.GetUltrasoneDistance();
-                // Give a sign of detecting something
             }
         }
     }

@@ -5,14 +5,16 @@ namespace RobotProject.ControlSystems.Actuators;
 
 public class ButtonLedController : IUpdatable
 {
-  bool isSchakelaarAan = false;
-  bool wasButtonPressed = false;
+  bool isSchakelaarAan;
+  bool wasButtonPressed;
 
   Button button;
 
   public ButtonLedController(int ButtonPinNumber)
   {
     button = new Button(ButtonPinNumber);
+    isSchakelaarAan = false;
+    wasButtonPressed = false;
   }
 
   public bool HasBeenPressed()

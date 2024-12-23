@@ -27,21 +27,20 @@ namespace RobotProject
         {
             // Initialize components
             motorController = new MotorController();
-            obstacleDetectionSystem = new ObstacleDetectionSystem(18);
-            buttonLedController = new ButtonLedController(5);
+            obstacleDetectionSystem = new ObstacleDetectionSystem(16);
+            buttonLedController = new ButtonLedController(6);
 
 
             lCD16X2 = new LCD16x2(0x3E);
-
-            // Is on true for debugging purpose
 
             robotName = "Memento";
 
             // Add all updatable components
             _components = new List<IUpdatable>
             {
+                buttonLedController,
                 obstacleDetectionSystem,
-                motorController
+                motorController,
             };
 
             // Display welcome message
@@ -50,6 +49,12 @@ namespace RobotProject
 
         public void Update()
         {
+            // Perform component updates
+            foreach (var component in _components)
+            {
+                component.Update();
+            }
+
             if (buttonLedController.IsSwitchedOn())
             {
                 IsFollowingTarget = true;
@@ -57,12 +62,6 @@ namespace RobotProject
             else
             {
                 IsFollowingTarget = false;
-            }
-
-            // Perform component updates
-            foreach (var component in _components)
-            {
-                component.Update();
             }
 
             // Example behavior: Follow a target
@@ -82,11 +81,13 @@ namespace RobotProject
             if (!obstacleDetectionSystem.IsPathClear())
             {
                 motorController.Stop();
+                Console.WriteLine("Obstacle detected!");
                 lCD16X2.SetText("Obstacle detected!");
             }
             else
             {
                 motorController.MoveForward();
+                Console.WriteLine("Following target...");
                 lCD16X2.SetText("Following target...");
             }
         }

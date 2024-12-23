@@ -2,12 +2,17 @@ using Avans.StatisticalRobot;
 using GyroscopeCompass.GyroscopeCompass;
 using Hardware.Touchpad;
 using Speaker;
-using Hardware.OLedDisplay;
 using System.Device.I2c;
-class Program
+using RobotProject;
+
+
+var RobotManager = new RobotManager();
+
+// Thread.Sleep(5000);
+Robot.Wait(5000);
+while (true)
 {
-    static void Main(string[] args)
-    {
-        
-    }
+    RobotManager.Update();
+
+    Robot.Wait(200);
 }
