@@ -31,21 +31,20 @@ namespace RobotProject.ControlSystems
             isMovingForward = false;
 
             int steps = 100; // Number of steps in the curve
-            int delayPerStep = 5 / steps; // Time delay per step
             short targetSpeed = 0;
 
-            if (CurrentMotorSpeedL > 10 && CurrentMotorSpeedR > 10)
+            if (CurrentMotorSpeedL > 0 && CurrentMotorSpeedR > 0)
             {
                 for (int i = 0; i <= steps; i++)
                 {
                     float t = (float)i / (float)steps; // Normalized time [0, 1]
                                                        // Calculate easing value (quadratic decay)
                     CurrentMotorSpeedL = (short)MathFunctions.Interpolate(CurrentMotorSpeedL, targetSpeed, t);
-                    CurrentMotorSpeedR = (short)MathFunctions.Interpolate(CurrentMotorSpeedL, targetSpeed, t);
+                    CurrentMotorSpeedR = (short)MathFunctions.Interpolate(CurrentMotorSpeedR, targetSpeed, t);
                     // Wait before updating the speed again
-                    Robot.Motors(CurrentMotorSpeedL, CurrentMotorSpeedR); // Cast to short
-                                                                          // Wait before updating the speed again
-                    Robot.Wait(delayPerStep);
+                    Robot.Motors(CurrentMotorSpeedL, CurrentMotorSpeedR);
+                    Console.WriteLine("Motor : {0}, Motor : {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
+                    Robot.Wait(50);
                 }
 
             }
