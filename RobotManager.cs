@@ -72,7 +72,9 @@ namespace RobotProject
             else
             {
                 motorController.Stop();
+
             }
+            motorController.Update();
 
         }
 
@@ -86,7 +88,7 @@ namespace RobotProject
             }
             else
             {
-                motorController.MoveForward();
+                motorController.SetTargetSpeed(MotorMode.Forward, 100, 100);
                 Console.WriteLine("Following target...");
                 lCD16X2.SetText("Following target...");
             }
