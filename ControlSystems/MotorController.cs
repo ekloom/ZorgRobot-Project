@@ -6,57 +6,76 @@ namespace RobotProject.ControlSystems
     internal class MotorController : IUpdatable
     {
 
-        private bool isMovingForward;
+        private bool isMotorActive;
+        private bool isEmergencyStop;
 
         private short CurrentMotorSpeedL;
         private short CurrentMotorSpeedR;
 
+        short targetSpeedR = 0;
+        short targetSpeedL = 0;
+
         public MotorController()
         {
-            isMovingForward = false;
+            isMotorActive = false;
+            isEmergencyStop = false;
             CurrentMotorSpeedL = 0;
             CurrentMotorSpeedR = 0;
         }
 
         public void MoveForward()
         {
-            isMovingForward = true;
-            CurrentMotorSpeedL = 100;
-            CurrentMotorSpeedR = 100;
+            isMotorActive = true;
+            targetSpeedR = 100;
+            targetSpeedL = 100;
             Robot.Motors(CurrentMotorSpeedL, CurrentMotorSpeedR);
         }
 
         public void Stop()
         {
-            isMovingForward = false;
+            targetSpeedR = 0;
+            targetSpeedL = 0;
+        }
 
+        private void SetMotorSpeed(short SpeedL = -1, short SpeedR = -1)
+        {
+            Robot.Motors(SpeedL == -1 ? CurrentMotorSpeedL : SpeedL, SpeedR == -1 ? CurrentMotorSpeedR : SpeedR);
+        }
+
+        private void EaseOutMotors(short targetSpeedLeft, short targetSpeedRight)
+        {
             int steps = 100; // Number of steps in the curve
-            short targetSpeed = 0;
 
-            if (CurrentMotorSpeedL > 10 && CurrentMotorSpeedR > 10)
+            for (int i = 0; i <= steps; i++)
             {
-                for (int i = 0; i <= steps; i++)
-                {
-                    float t = (float)i / (float)steps; // Normalized time [0, 1]
-                                                       // Calculate easing value (quadratic decay)
-                    CurrentMotorSpeedL = (short)MathFunctions.Interpolate(CurrentMotorSpeedL, targetSpeed, t);
-                    CurrentMotorSpeedR = (short)MathFunctions.Interpolate(CurrentMotorSpeedR, targetSpeed, t);
-                    // Wait before updating the speed again
-                    Robot.Motors(CurrentMotorSpeedL, CurrentMotorSpeedR);
-                    Console.WriteLine("Motor : {0}, Motor : {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
-                    if (CurrentMotorSpeedL == targetSpeed && CurrentMotorSpeedR == targetSpeed) i = steps;
-                    Robot.Wait(50);
-                }
+                float t = (float)i / (float)steps; // Normalized time [0, 1]
 
+                // Interpolate the left motor speed
+                CurrentMotorSpeedL = (short)MathFunctions.InterpolateWithEaseOutCubic(CurrentMotorSpeedL, targetSpeedLeft, t);
+
+                // Interpolate the right motor speed
+                CurrentMotorSpeedR = (short)MathFunctions.InterpolateWithEaseOutCubic(CurrentMotorSpeedR, targetSpeedRight, t);
+
+                // Updates motor speed
+                SetMotorSpeed();
+                Console.WriteLine("Motor : {0}, Motor : {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
+
+                // Sets the iterator equal to steps if the targetSpeed is already met
+                if (CurrentMotorSpeedL == targetSpeedL && CurrentMotorSpeedR == targetSpeedR) i = steps;
+
+                // Wait before updating again
+                Robot.Wait(50);
             }
 
-            Robot.Motors(targetSpeed, targetSpeed);
-
+            // Ensures that the speed of the motor is set to the target speed
+            SetMotorSpeed(targetSpeedL, targetSpeedR);
+            isMotorActive = false;
         }
+
 
         public void EmergencyStop()
         {
-            isMovingForward = false;
+            isEmergencyStop = true;
             Robot.Motors(0, 0);
         }
 
@@ -64,10 +83,17 @@ namespace RobotProject.ControlSystems
         public void Update()
         {
             // Handle periodic updates if necessary
-            if (isMovingForward)
+            if (isMotorActive && !isEmergencyStop)
             {
-                // Placeholder for motor diagnostics or telemetry
-                Console.WriteLine("Motor is running...");
+                if (CurrentMotorSpeedL < targetSpeedL && CurrentMotorSpeedL < targetSpeedR)
+                {
+                    EaseOutMotors(targetSpeedL, targetSpeedR);
+                }
+
+                if (CurrentMotorSpeedL > targetSpeedL && CurrentMotorSpeedR > targetSpeedL)
+                {
+                    EaseOutMotors(targetSpeedL, targetSpeedR);
+                }
             }
         }
     }
