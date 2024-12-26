@@ -1,17 +1,17 @@
 using Avans.StatisticalRobot;
 using RobotProject.ControlSystems;
-using RobotProject.ControlSystems.Actuators;
+using RobotProject.Controllers;
 
 
 namespace RobotProject
 {
     public class RobotManager : IUpdatable
     {
-        private readonly List<IUpdatable> _components;
+        // private readonly List<IUpdatable> _components;
 
         // Controllers and systems
-        private readonly MotorController motorController;
-        private readonly ObstacleDetectionSystem obstacleDetectionSystem;
+
+        private readonly DrivingSystem drivingSystem;
         protected readonly ButtonLedController buttonLedController;
 
         // Actuators
@@ -20,28 +20,26 @@ namespace RobotProject
         private readonly string robotName;
 
 
-        private bool IsFollowingTarget;
+        private bool IsAutoDriving;
 
 
         public RobotManager()
         {
             // Initialize components
-            motorController = new MotorController();
-            obstacleDetectionSystem = new ObstacleDetectionSystem(16);
+
             buttonLedController = new ButtonLedController(6);
-
-
             lCD16X2 = new LCD16x2(0x3E);
+
+            drivingSystem = new DrivingSystem(lCD16X2);
 
             robotName = "Memento";
 
             // Add all updatable components
-            _components = new List<IUpdatable>
-            {
-                buttonLedController,
-                obstacleDetectionSystem,
-                motorController,
-            };
+            // _components = new List<IUpdatable>
+            // {
+            //     buttonLedController,
+            //     drivingSystem,
+            // };
 
             // Display welcome message
             lCD16X2.SetText($"Welkom! Ik ben {robotName}!");
@@ -50,48 +48,53 @@ namespace RobotProject
         public void Update()
         {
             // Perform component updates
-            foreach (var component in _components)
-            {
-                component.Update();
-            }
+            drivingSystem.Update();
+            buttonLedController.Update();
 
             if (buttonLedController.IsSwitchedOn())
             {
-                IsFollowingTarget = true;
+                IsAutoDriving = true;
             }
             else
             {
-                IsFollowingTarget = false;
+                IsAutoDriving = false;
             }
 
             // Example behavior: Follow a target
-            if (IsFollowingTarget)
+            if (IsAutoDriving)
             {
-                FollowTarget();
+                drivingSystem.FollowTarget();
             }
             else
             {
-                motorController.Stop();
+                // Manual Control via MQTT
 
+                // Needs continuation of input for the direction otherwise stop the motor
+
+                // Command: Stop
+                drivingSystem.Stop();
+
+                // Command: Forward
+                // drivingSystem.Drive(Direction.Forward, 100);
+                // Command: Turn forward left diagonal
+                // drivingSystem.Drive(Direction.Forward | Direction.Left, 100);
+                // Command: Turn forward right diagonal
+                // drivingSystem.Drive(Direction.Forward | Direction.Right, 100);
+
+                // Command: Backwards
+                // drivingSystem.Drive(Direction.Backwards, 100);
+                // Command: Turn Backwards left diagonal
+                // drivingSystem.Drive(Direction.Backwards | Direction.Left, 100);
+                // Command: Turn Backwards right diagonal
+                // drivingSystem.Drive(Direction.Backwards | Direction.Right, 100);
+
+
+                drivingSystem.Update();
             }
-            motorController.Update();
+
 
         }
 
-        private void FollowTarget()
-        {
-            if (!obstacleDetectionSystem.IsPathClear())
-            {
-                motorController.Stop();
-                Console.WriteLine("Obstacle detected!");
-                lCD16X2.SetText("Obstacle detected!");
-            }
-            else
-            {
-                motorController.SetTargetSpeed(MotorMode.Forward, 100, 100);
-                Console.WriteLine("Following target...");
-                lCD16X2.SetText("Following target...");
-            }
-        }
+
     }
 }

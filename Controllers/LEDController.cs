@@ -1,6 +1,6 @@
 ﻿using Avans.StatisticalRobot;
 
-namespace RobotProject.ControlSystems.Actuators
+namespace RobotProject.Controllers
 {
     public class LEDController
     {

@@ -4,7 +4,7 @@ using HiveMQtt.MQTT5.ReasonCodes;
 using HiveMQtt.MQTT5.Types;
 using System.Text;
 
-namespace RobotProject.Communication.Mqtt;
+namespace RobotProject.Services.Mqtt;
 
 /// <summary>
 /// Deze klasse 'wrapt' de HiveMQClient die alle code bevat om

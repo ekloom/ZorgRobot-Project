@@ -1,18 +1,21 @@
 
 using Avans.StatisticalRobot;
 
-namespace RobotProject.ControlSystems.Actuators;
+namespace RobotProject.Controllers;
 
 public class ButtonLedController : IUpdatable
 {
   bool isSchakelaarAan;
   bool wasButtonPressed;
+  bool isButtonPressed;
 
   Button button;
+  Led led;
 
   public ButtonLedController(int ButtonPinNumber)
   {
     button = new Button(ButtonPinNumber);
+    led = new Led(ButtonPinNumber - 1);
     isSchakelaarAan = false;
     wasButtonPressed = false;
   }
@@ -29,12 +32,21 @@ public class ButtonLedController : IUpdatable
 
   public void Update()
   {
-    bool isButtonPressed = button.GetState() == "Pressed";
+    isButtonPressed = button.GetState() == "Pressed";
 
     if (isButtonPressed && !wasButtonPressed)
     {
       wasButtonPressed = true;
       isSchakelaarAan = !isSchakelaarAan;
+    }
+
+    if (isSchakelaarAan)
+    {
+      led.SetOn();
+    }
+    else
+    {
+      led.SetOff();
     }
 
     if (!isButtonPressed && wasButtonPressed)

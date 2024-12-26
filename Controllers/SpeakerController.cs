@@ -1,4 +1,4 @@
-﻿namespace RobotProject.ControlSystems.Actuators
+﻿namespace RobotProject.Controllers
 {
     internal class SpeakerController
     {
