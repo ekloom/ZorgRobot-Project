@@ -1,6 +1,6 @@
-using System;
 
-namespace RobotProject.Util;
+
+namespace RobotProject.ControlSystems.Util;
 
 public static class MathFunctions
 {

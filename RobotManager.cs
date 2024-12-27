@@ -12,7 +12,7 @@ namespace RobotProject
         // Controllers and systems
 
         private readonly DrivingSystem drivingSystem;
-        protected readonly ButtonLedController buttonLedController;
+        protected readonly ButtonLedController buttonLedSystem;
 
         // Actuators
         private readonly LCD16x2 lCD16X2;
@@ -27,7 +27,7 @@ namespace RobotProject
         {
             // Initialize components
 
-            buttonLedController = new ButtonLedController(6);
+            buttonLedSystem = new ButtonLedController(6);
             lCD16X2 = new LCD16x2(0x3E);
 
             drivingSystem = new DrivingSystem(lCD16X2);
@@ -49,9 +49,9 @@ namespace RobotProject
         {
             // Perform component updates
             drivingSystem.Update();
-            buttonLedController.Update();
+            buttonLedSystem.Update();
 
-            if (buttonLedController.IsSwitchedOn())
+            if (buttonLedSystem.IsSwitchedOn())
             {
                 IsAutoDriving = true;
             }

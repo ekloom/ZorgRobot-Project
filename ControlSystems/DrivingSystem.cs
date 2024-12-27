@@ -1,5 +1,5 @@
 using Avans.StatisticalRobot;
-using RobotProject.Util;
+using RobotProject.ControlSystems.Util;
 
 namespace RobotProject.ControlSystems;
 

@@ -1,6 +1,6 @@
 using Avans.StatisticalRobot;
 
-namespace RobotProject.Util;
+namespace RobotProject.ControlSystems.Util;
 
 public class MotorFuntions
 {
