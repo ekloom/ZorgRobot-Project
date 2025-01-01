@@ -12,6 +12,8 @@ namespace RobotProject
         // Controllers and systems
 
         private readonly DrivingSystem drivingSystem;
+
+
         protected readonly ButtonLedController buttonLedSystem;
 
         // Actuators
@@ -33,17 +35,16 @@ namespace RobotProject
             drivingSystem = new DrivingSystem(lCD16X2);
 
             robotName = "Memento";
+        }
 
-            // Add all updatable components
-            // _components = new List<IUpdatable>
-            // {
-            //     buttonLedController,
-            //     drivingSystem,
-            // };
+        public void Init()
+        {
 
             // Display welcome message
             lCD16X2.SetText($"Welkom! Ik ben {robotName}!");
         }
+
+
 
         public void Update()
         {
