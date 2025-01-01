@@ -23,11 +23,6 @@ public class ButtonLedController : IUpdatable
     buttonPressStartTime = null;
   }
 
-  public bool HasBeenPressed()
-  {
-    return wasButtonPressed;
-  }
-
   public ButtonStatus GetButtonStatus() => buttonStatus;
 
   public void Update()
