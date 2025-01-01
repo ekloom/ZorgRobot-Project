@@ -46,6 +46,7 @@ public class DrivingSystem : IUpdatable
         isEmergencyStop = true;
         _motorMode = MotorMode.stop;
         MotorFuntions.SetMotorSpeed(0, 0);
+        System.Console.WriteLine("EmergencyStop activated!");
     }
 
     public void FollowTarget()

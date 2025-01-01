@@ -2,13 +2,13 @@ using System;
 
 namespace RobotProject.Services.Mqtt;
 
-public class MqttMessageProcessingService
+public class MqttMessageHandler
 {
   private readonly SimpleMqttClient _mqttClient;
 
   public event EventHandler<string> OnMessageReceived;
 
-  public MqttMessageProcessingService()
+  public MqttMessageHandler()
   {
 
     _mqttClient = new SimpleMqttClient(new SimpleMqttClientConfiguration());
@@ -31,6 +31,7 @@ public class MqttMessageProcessingService
         break;
     }
 
+    System.Console.WriteLine(message);
     await _mqttClient.PublishMessage(message, topic);
   }
 

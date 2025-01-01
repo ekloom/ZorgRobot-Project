@@ -5,19 +5,22 @@ namespace RobotProject.Controllers;
 
 public class ButtonLedController : IUpdatable
 {
-  bool isSchakelaarAan;
   bool wasButtonPressed;
   bool isButtonPressed;
 
   Button button;
   Led led;
+  ButtonStatus buttonStatus;
+
+  DateTime? buttonPressStartTime;
 
   public ButtonLedController(int ButtonPinNumber)
   {
     button = new Button(ButtonPinNumber);
     led = new Led(ButtonPinNumber - 1);
-    isSchakelaarAan = false;
     wasButtonPressed = false;
+    buttonStatus = new ButtonStatus();
+    buttonPressStartTime = null;
   }
 
   public bool HasBeenPressed()
@@ -25,22 +28,40 @@ public class ButtonLedController : IUpdatable
     return wasButtonPressed;
   }
 
-  public bool IsSwitchedOn()
-  {
-    return isSchakelaarAan;
-  }
+  public ButtonStatus GetButtonStatus() => buttonStatus;
 
   public void Update()
   {
     isButtonPressed = button.GetState() == "Pressed";
 
-    if (isButtonPressed && !wasButtonPressed)
+
+    if (isButtonPressed)
     {
-      wasButtonPressed = true;
-      isSchakelaarAan = !isSchakelaarAan;
+
+      if (!wasButtonPressed)
+      {
+        wasButtonPressed = true;
+        buttonStatus.IsSwitchedOn = !buttonStatus.IsSwitchedOn;
+      }
+
+      if (buttonPressStartTime == null)
+      {
+        buttonPressStartTime = DateTime.Now;
+      }
+      else
+      {
+        buttonStatus.TimePressed = (int)(DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds;
+        Console.WriteLine($"Button was pressed for {buttonStatus.TimePressed} milliseconds.");
+      }
+    }
+    else if (buttonPressStartTime != null)
+    {
+      buttonStatus.TimePressed = (int)(DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds;
+      buttonPressStartTime = null; // Reset the timer
+      Console.WriteLine($"Button was pressed for {buttonStatus.TimePressed} milliseconds.");
     }
 
-    if (isSchakelaarAan)
+    if (buttonStatus.IsSwitchedOn)
     {
       led.SetOn();
     }
@@ -57,4 +78,13 @@ public class ButtonLedController : IUpdatable
 
     Robot.Wait(50);
   }
+}
+
+
+public class ButtonStatus
+{
+  public int TimePressed { get; internal set; }
+
+  public bool IsSwitchedOn { get; internal set; }
+
 }

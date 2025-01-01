@@ -1,6 +1,7 @@
 using Avans.StatisticalRobot;
 using RobotProject.ControlSystems;
 using RobotProject.Controllers;
+using RobotProject.Services.Mqtt;
 
 
 namespace RobotProject
@@ -12,87 +13,65 @@ namespace RobotProject
         // Controllers and systems
 
         private readonly DrivingSystem drivingSystem;
+        protected readonly ButtonLedController buttonLedController;
 
-
-        protected readonly ButtonLedController buttonLedSystem;
+        protected readonly MqttMessageHandler mqttMessageHandler;
 
         // Actuators
         private readonly LCD16x2 lCD16X2;
 
         private readonly string robotName;
 
-
-        private bool IsAutoDriving;
-
-
         public RobotManager()
         {
+
+            lCD16X2 = new LCD16x2(0x3E);
             // Initialize components
 
-            buttonLedSystem = new ButtonLedController(6);
-            lCD16X2 = new LCD16x2(0x3E);
+            buttonLedController = new ButtonLedController(6);
 
             drivingSystem = new DrivingSystem(lCD16X2);
+
+            // mqttMessageHandler = new MqttMessageHandler();
 
             robotName = "Memento";
         }
 
         public void Init()
         {
-
             // Display welcome message
             lCD16X2.SetText($"Welkom! Ik ben {robotName}!");
+
+            // mqttMessageHandler.OnMessageReceived += (s, e) =>
+            // {
+            //     switch (e)
+            //     {
+            //         case "Start":
+            //             drivingSystem.FollowTarget();
+            //             break;
+            //         case "Stop":
+            //             drivingSystem.Stop();
+            //             break;
+            //     }
+            // };
         }
 
 
-
-        public void Update()
+        public async void Update()
         {
             // Perform component updates
+            buttonLedController.Update();
             drivingSystem.Update();
-            buttonLedSystem.Update();
 
-            if (buttonLedSystem.IsSwitchedOn())
+            if (buttonLedController.GetButtonStatus().TimePressed >= 1000)
             {
-                IsAutoDriving = true;
+                // Start met aftellen
+                if (buttonLedController.GetButtonStatus().TimePressed >= 5000)
+                {
+                    drivingSystem.EmergencyStop();
+                }
+                // await mqttMessageHandler.SendMessage("De noodstopknop is ingedrukt", TopicType.Alert);
             }
-            else
-            {
-                IsAutoDriving = false;
-            }
-
-            // Example behavior: Follow a target
-            if (IsAutoDriving)
-            {
-                drivingSystem.FollowTarget();
-            }
-            else
-            {
-                // Manual Control via MQTT
-
-                // Needs continuation of input for the direction otherwise stop the motor
-
-                // Command: Stop
-                drivingSystem.Stop();
-
-                // Command: Forward
-                // drivingSystem.Drive(Direction.Forward, 100);
-                // Command: Turn forward left diagonal
-                // drivingSystem.Drive(Direction.Forward | Direction.Left, 100);
-                // Command: Turn forward right diagonal
-                // drivingSystem.Drive(Direction.Forward | Direction.Right, 100);
-
-                // Command: Backwards
-                // drivingSystem.Drive(Direction.Backwards, 100);
-                // Command: Turn Backwards left diagonal
-                // drivingSystem.Drive(Direction.Backwards | Direction.Left, 100);
-                // Command: Turn Backwards right diagonal
-                // drivingSystem.Drive(Direction.Backwards | Direction.Right, 100);
-
-
-                drivingSystem.Update();
-            }
-
 
         }
 
