@@ -1,18 +1,25 @@
 
+using System.Runtime.InteropServices;
 using Avans.StatisticalRobot;
 
 namespace RobotProject.Controllers;
 
 public class ButtonLedController : IUpdatable
 {
-  bool wasButtonPressed;
-  bool isButtonPressed;
 
   Button button;
   Led led;
   ButtonStatus buttonStatus;
 
   DateTime? buttonPressStartTime;
+  DateTime? lastPressed;
+
+  bool wasButtonPressed;
+
+  const int debounceTimeMs = 250; // The debounce time in milliseconds
+  const int longpressThreshold = 1000; // Threshold for the long press in milliseconds
+  const int resetTimeOutMs = 3000; // The time out in milliseconds 
+
 
   public ButtonLedController(int ButtonPinNumber)
   {
@@ -27,11 +34,28 @@ public class ButtonLedController : IUpdatable
 
   public void Update()
   {
-    isButtonPressed = button.GetState() == "Pressed";
+    buttonStatus.isButtonPressed = button.GetState() == "Pressed";
 
 
-    if (isButtonPressed)
+    if (buttonStatus.isButtonPressed)
     {
+
+      if (buttonPressStartTime == null)
+      {
+        buttonPressStartTime = DateTime.Now;
+      }
+
+
+      if (lastPressed == null || (DateTime.Now - lastPressed.Value).TotalMilliseconds >= debounceTimeMs)
+      {
+        if ((DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds <= longpressThreshold)
+        {
+          buttonStatus.TimesPressed++;
+          System.Console.WriteLine("Button was pressed {0} times.", buttonStatus.TimesPressed);
+        }
+
+        lastPressed = DateTime.Now;
+      }
 
       if (!wasButtonPressed)
       {
@@ -39,47 +63,54 @@ public class ButtonLedController : IUpdatable
         buttonStatus.IsSwitchedOn = !buttonStatus.IsSwitchedOn;
       }
 
-      if (buttonPressStartTime == null)
+      if ((DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds >= longpressThreshold)
       {
-        buttonPressStartTime = DateTime.Now;
+        buttonStatus.PressingDuration = (int)(DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds;
+        Console.WriteLine($"Button was pressed for {buttonStatus.PressingDuration} milliseconds.");
       }
-      else
-      {
-        buttonStatus.TimePressed = (int)(DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds;
-        Console.WriteLine($"Button was pressed for {buttonStatus.TimePressed} milliseconds.");
-      }
-    }
-    else if (buttonPressStartTime != null)
-    {
-      buttonStatus.TimePressed = (int)(DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds;
-      buttonPressStartTime = null; // Reset the timer
-      Console.WriteLine($"Button was pressed for {buttonStatus.TimePressed} milliseconds.");
-    }
 
-    if (buttonStatus.IsSwitchedOn)
-    {
-      led.SetOn();
     }
     else
     {
-      led.SetOff();
-    }
+      if (buttonPressStartTime != null)
+      {
+        buttonPressStartTime = null; // Reset the timer
+        buttonStatus.PressingDuration = 0;
+        Console.WriteLine($"Button was pressed for {buttonStatus.PressingDuration} milliseconds.");
+      }
 
-    if (!isButtonPressed && wasButtonPressed)
-    {
       wasButtonPressed = false;
-      Console.WriteLine("Set wasButtonPressed variable to false");
+
+      if (lastPressed != null && (DateTime.Now - lastPressed.Value).TotalMilliseconds > resetTimeOutMs)
+      {
+        buttonStatus.TimesPressed = 0;
+        lastPressed = null;
+        System.Console.WriteLine("TimesPressed was reset to 0 due to inactivity.");
+      }
     }
 
-    Robot.Wait(50);
+    // if (buttonStatus.IsSwitchedOn)
+    // {
+    //   led.SetOn();
+    // }
+    // else
+    // {
+    //   led.SetOff();
+    // }
+
+    // Standard debounce time
+    // Robot.Wait(50);
   }
 }
 
 
 public class ButtonStatus
 {
-  public int TimePressed { get; internal set; }
+  public int TimesPressed { get; internal set; }
+
+  public int PressingDuration { get; internal set; }
 
   public bool IsSwitchedOn { get; internal set; }
 
+  public bool isButtonPressed { get; internal set; }
 }

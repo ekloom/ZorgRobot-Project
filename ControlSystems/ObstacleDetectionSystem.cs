@@ -17,19 +17,10 @@ namespace RobotProject.ControlSystems
         {
             distanceSensor = new Ultrasonic(UltrasonicPinNumber);
             scanIntervalTimer = new PeriodTimer(scanInterval);
-
             detectionThreshold = 50;
         }
 
-        public bool IsPathClear()
-        {
-            if (GetDistanceToSensor() >= detectionThreshold)
-            {
-                return true;
-            }
-
-            return false;
-        }
+        public bool IsPathClear() => GetDistanceToSensor() >= detectionThreshold;
 
         public int GetDistanceToSensor()
         {

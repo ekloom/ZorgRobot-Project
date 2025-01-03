@@ -1,14 +1,27 @@
+using Avans.StatisticalRobot;
+using RobotProject;
 using System;
-using System.Diagnostics;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using RobotProject.Services.Mqtt;
+using System.Diagnostics;
 using System.Device.Gpio;
 using System.Device.I2c;
 using GyroscopeCompass;
-using Avans.StatisticalRobot;
 using GyroscopeCompass.GyroscopeCompass;
 
-using RobotProject;
 
+
+// var builder = new ConfigurationBuilder()
+// .SetBasePath(Directory.GetCurrentDirectory())
+//             .AddUserSecrets<Program>()
+//             ;
+
+// IConfiguration config = builder.Build();
+
+
+// System.Console.WriteLine(config.GetSection("HiveMQ").Exists());
 
 var RobotManager = new RobotManager();
 
@@ -20,5 +33,5 @@ while (true)
 {
     RobotManager.Update();
 
-    Robot.Wait(200);
+    Robot.Wait(100);
 }

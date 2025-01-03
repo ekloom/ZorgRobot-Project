@@ -3,42 +3,42 @@ using RobotProject.ControlSystems.Util;
 
 namespace RobotProject.ControlSystems;
 
-public class DrivingSystem : IUpdatable
+internal class DrivingSystem : IUpdatable
 {
-
-
     private readonly ObstacleDetectionSystem obstacleDetectionSystem;
-
-    private bool isEmergencyStop;
-
-    private short CurrentMotorSpeedL;
-    private short CurrentMotorSpeedR;
-
-    private MotorMode _motorMode;
-
     private readonly LCD16x2 _lcd;
 
-    short _targetSpeedR;
-    short _targetSpeedL;
+    private bool isEmergencyStop;
+    private MotorMode _motorMode;
+    private short CurrentMotorSpeedL;
+    private short CurrentMotorSpeedR;
+    private short _targetSpeedL;
+    private short _targetSpeedR;
 
-    public DrivingSystem(LCD16x2 lcd)
+    public bool IsFollowingTarget { get; set; }
+
+    public DrivingSystem(LCD16x2 lcd, ObstacleDetectionSystem _obstacleDetectionSystem)
     {
         _motorMode = MotorMode.stop;
         _lcd = lcd;
-        obstacleDetectionSystem = new ObstacleDetectionSystem(16);
+        obstacleDetectionSystem = _obstacleDetectionSystem;
+        MotorFuntions.SetMotorSpeed(0, 0);
     }
 
-
-    public void SetTargetSpeed(MotorMode motorMode, short targetSpeedR, short targetSpeedL)
+    public void Reset()
     {
-        _targetSpeedR = targetSpeedR;
-        _targetSpeedL = targetSpeedL;
-        _motorMode = motorMode;
+        _motorMode = MotorMode.stop;
+        isEmergencyStop = false;
+        IsFollowingTarget = false;
+        CurrentMotorSpeedL = 0;
+        CurrentMotorSpeedR = 0;
     }
 
     public void Stop()
     {
         _motorMode = MotorMode.stop;
+        _lcd.SetText("Stopped!");
+        System.Console.WriteLine("Motor stopped!");
     }
 
     public void EmergencyStop()
@@ -49,21 +49,6 @@ public class DrivingSystem : IUpdatable
         System.Console.WriteLine("EmergencyStop activated!");
     }
 
-    public void FollowTarget()
-    {
-        if (!obstacleDetectionSystem.IsPathClear())
-        {
-            Stop();
-            Console.WriteLine("Obstacle detected!");
-            _lcd.SetText("Obstacle detected!");
-        }
-        else
-        {
-            Drive(Direction.Forward, 100);
-            Console.WriteLine("Following target...");
-            _lcd.SetText("Following target...");
-        }
-    }
 
     public void Drive(Direction direction, short Speed)
     {
@@ -101,26 +86,45 @@ public class DrivingSystem : IUpdatable
         _motorMode = MotorMode.Run;
     }
 
+    void FollowTarget()
+    {
+        if (!obstacleDetectionSystem.IsPathClear())
+        {
+            Stop();
+            Console.WriteLine("Obstacle detected!");
+            _lcd.SetText("Obstacle detected!");
+        }
+        else
+        {
+            Drive(Direction.Forward, 100);
+            Console.WriteLine("Following target...");
+            _lcd.SetText("Following target...");
+        }
+    }
+
 
     public void Update()
     {
         // Handle periodic updates if necessary
         if (!isEmergencyStop)
         {
+            if (IsFollowingTarget)
+            {
+                FollowTarget();
+            }
 
             switch (_motorMode)
             {
                 case MotorMode.stop:
-                    MotorFuntions.EaseOutMotors(ref CurrentMotorSpeedL, ref CurrentMotorSpeedR, 0, 0);
+                    if (CurrentMotorSpeedL != 0 && CurrentMotorSpeedR != 0)
+                    {
+                        MotorFuntions.EaseOutMotors(ref CurrentMotorSpeedL, ref CurrentMotorSpeedR, 0, 0);
+                    }
                     break;
                 case MotorMode.Run:
                     if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
                     {
                         MotorFuntions.EaseOutMotors(ref CurrentMotorSpeedL, ref CurrentMotorSpeedR, _targetSpeedL, _targetSpeedR);
-                    }
-                    else
-                    {
-                        MotorFuntions.SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
                     }
                     break;
 
@@ -144,9 +148,4 @@ public enum MotorMode
 {
     stop = 0,
     Run,
-}
-
-public enum AutoMode
-{
-    FollowTarget,
 }

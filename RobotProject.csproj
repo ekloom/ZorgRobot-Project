@@ -1,18 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PlatformTarget>ARM64</PlatformTarget>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PlatformTarget>ARM64</PlatformTarget>
+		<UserSecretsId>f68c5d28-1502-4e4b-9d7e-e35ee4939c63</UserSecretsId>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Avans.StatisticalRobot" Version="1.1.6-beta" />
-    <PackageReference Include="HiveMQtt" Version="0.24.0" />
-    <PackageReference Include="System.Device.Gpio" Version="3.2.0" />
-    <PackageReference Include="System.IO.Ports" Version="9.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avans.StatisticalRobot" Version="1.1.6-beta" />
+		<PackageReference Include="HiveMQtt" Version="0.24.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.0" />
+		<PackageReference Include="System.Device.Gpio" Version="3.2.0" />
+		<PackageReference Include="System.IO.Ports" Version="9.0.0" />
+	</ItemGroup>
 
 </Project>

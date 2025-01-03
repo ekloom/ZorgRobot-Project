@@ -4,39 +4,48 @@ namespace RobotProject.ControlSystems.Util;
 
 public class MotorFuntions
 {
-  public static void EaseOutMotors(ref short CurrentMotorSpeedL, ref short CurrentMotorSpeedR, short targetSpeedLeft, short targetSpeedRight)
+  public static void EaseOutMotors(ref short currentMotorSpeedL, ref short currentMotorSpeedR, short targetSpeedLeft, short targetSpeedRight)
   {
-    int steps = 100; // Number of steps in the curve
+    const float stepTimeMs = 50.0f; // Time per step in milliseconds
+    const float durationMs = 3000.0f; // Total duration for ease out (adjust as needed)
+    float elapsedTime = 0.0f;
 
-    for (int i = 0; i <= steps; i++)
+    while (elapsedTime <= durationMs)
     {
-      float t = (float)i / (float)steps; // Normalized time [0, 1]
+      // Calculate the progress normalized to [0, 1]
+      float t = elapsedTime / durationMs;
 
-      // Interpolate the left motor speed
-      CurrentMotorSpeedL = (short)MathFunctions.InterpolateWithEaseOutCubic(CurrentMotorSpeedL, targetSpeedLeft, t);
+      // Apply the easing function
+      float easedT = MathFunctions.EaseOutCubic(t);
 
-      // Interpolate the right motor speed
-      CurrentMotorSpeedR = (short)MathFunctions.InterpolateWithEaseOutCubic(CurrentMotorSpeedR, targetSpeedRight, t);
+      // Interpolate motor speeds
+      currentMotorSpeedL = (short)(currentMotorSpeedL + (targetSpeedLeft - currentMotorSpeedL) * easedT);
+      currentMotorSpeedR = (short)(currentMotorSpeedR + (targetSpeedRight - currentMotorSpeedR) * easedT);
 
-      // Updates motor speed
-      SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
-      Console.WriteLine("Motor : {0}, Motor : {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
+      // Update motor speed
+      SetMotorSpeed(currentMotorSpeedL, currentMotorSpeedR);
+      Console.WriteLine("Motor L: {0}, Motor R: {1}", currentMotorSpeedL, currentMotorSpeedR);
 
-      // Sets the iterator equal to steps if the targetSpeed is already met
-      if (CurrentMotorSpeedL == targetSpeedLeft && CurrentMotorSpeedR == targetSpeedRight) i = steps;
+      // Break the loop if speeds are close enough to target
+      if (Math.Abs(currentMotorSpeedL - targetSpeedLeft) <= 1 && Math.Abs(currentMotorSpeedR - targetSpeedRight) <= 1)
+      {
+        break;
+      }
 
-      // Wait before updating again
-      Robot.Wait(50);
+      // Wait and increment time
+      Robot.Wait((int)stepTimeMs / 2);
+      elapsedTime += stepTimeMs;
     }
 
-    // Ensures that the speed of the motor is set to the target speed
-    CurrentMotorSpeedL = targetSpeedLeft;
-    CurrentMotorSpeedR = targetSpeedRight;
+    // Ensure the final speeds are set to target
+    currentMotorSpeedL = targetSpeedLeft;
+    currentMotorSpeedR = targetSpeedRight;
     SetMotorSpeed(targetSpeedLeft, targetSpeedRight);
   }
 
   public static void SetMotorSpeed(short SpeedL, short SpeedR)
   {
+    // Apply speed ti the motors
     Robot.Motors(SpeedL, SpeedR);
   }
 }

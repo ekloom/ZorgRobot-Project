@@ -6,15 +6,16 @@ public class MqttMessageHandler
 {
   private readonly SimpleMqttClient _mqttClient;
 
-  public event EventHandler<string> OnMessageReceived;
+  public event EventHandler<string>? OnMessageReceived;
 
   public MqttMessageHandler()
   {
 
-    _mqttClient = new SimpleMqttClient(new SimpleMqttClientConfiguration());
+    _mqttClient = SimpleMqttClient.CreateSimpleMqttClientForHiveMQ("RobotProject");
 
     _mqttClient.OnMessageReceived += HandleMessage;
 
+    SendMessage("Zorgrobot is connected!", TopicType.Info);
   }
 
   public async Task SendMessage(string message, TopicType topicType)
@@ -40,7 +41,7 @@ public class MqttMessageHandler
     await _mqttClient.SubscribeToTopic("/Command");
   }
 
-  private void HandleMessage(object sender, SimpleMqttMessage args)
+  private void HandleMessage(object sender, SimpleMqttMessage? args)
   {
     // save je data mbv je repo
     // Wllicht wil je ook je data opslaan in een database?

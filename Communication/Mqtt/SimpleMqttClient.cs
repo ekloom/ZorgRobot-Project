@@ -2,6 +2,7 @@
 using HiveMQtt.Client.Events;
 using HiveMQtt.MQTT5.ReasonCodes;
 using HiveMQtt.MQTT5.Types;
+using System.Reflection;
 using System.Text;
 
 namespace RobotProject.Services.Mqtt;
@@ -151,20 +152,25 @@ public class SimpleMqttClient : IDisposable
     /// <returns></returns>
     public static SimpleMqttClient CreateSimpleMqttClientForHiveMQ(string clientId)
     {
+
+
+
         var mqttWrapper = new SimpleMqttClient(new()
         {
-            Host = "92db4b4b69e848fb83cb6660e895832a.s1.eu.hivemq.cloud", // maak eventueel een account aan bij hivemq als dit problemen geeft.
+            Host = "99cba3f1321a43acbf17b4553dd71dca.s1.eu.hivemq.cloud", // maak eventueel een account aan bij hivemq als dit problemen geeft.
             Port = 8883,
             CleanStart = false, // <--- false, haalt al gebufferde meldingen ook op.
             ClientId = clientId, // Dit clientid moet uniek zijn binnen de broker
             TimeoutInMs = 5_000, // Standaard time-out bij het maken van een verbinding (5 seconden)
-            UserName = "hivemq.webclient.1732790085418",
-            Password = "ah5#>Q?I%KuBP7W4ko0v"
+            UserName = "ZRPA_98a3Xb",
+            Password = "4&7ZQvPY7ykEN422TcHx"
         });
 
         return mqttWrapper;
     }
+
 }
+
 
 /// <summary>
 /// Deze klasse bevat de instructies waarmee je MQTT client wordt geconfigureerd
