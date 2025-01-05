@@ -11,34 +11,39 @@ namespace RobotProject
         private readonly List<IUpdatable> _components;
 
         // Controllers and systems
-
         private readonly DrivingSystem drivingSystem;
+
         protected readonly ButtonLedController buttonLedController;
 
         private readonly ObstacleDetectionSystem obstacleDetectionSystem;
 
+        private readonly LoggingSystem loggingSystem;
+
         protected readonly MqttMessageHandler mqttMessageHandler;
 
         // Actuators
-        private readonly LCD16x2 lCD16X2;
         private readonly PIRMotion pIRMotion;
+
+        private LCD16x2 LCD;
 
         private readonly string robotName;
 
         public RobotManager()
         {
 
-            lCD16X2 = new LCD16x2(0x3E);
             pIRMotion = new PIRMotion(18, 100, 15);
 
+            LCD = new LCD16x2(0x3E);
 
-            // Initialize components
+            loggingSystem = new LoggingSystem(LCD);
 
             buttonLedController = new ButtonLedController(6);
 
             obstacleDetectionSystem = new ObstacleDetectionSystem(16);
 
-            drivingSystem = new DrivingSystem(lCD16X2, obstacleDetectionSystem);
+            drivingSystem = new DrivingSystem(obstacleDetectionSystem, loggingSystem);
+
+
 
             mqttMessageHandler = new MqttMessageHandler();
             _components = new List<IUpdatable>{
@@ -53,7 +58,7 @@ namespace RobotProject
         public void Init()
         {
             // Display welcome message
-            lCD16X2.SetText($"Welkom! Ik ben {robotName}!");
+            loggingSystem.LogToLcd($"Welkom! Ik ben {robotName}!");
             mqttMessageHandler.Init();
 
 
@@ -62,10 +67,10 @@ namespace RobotProject
                 switch (e.ToLower())
                 {
                     case "start":
-                        drivingSystem.IsFollowingTarget = true;
+                        drivingSystem.IsFollowingPerson = true;
                         break;
                     case "stop":
-                        drivingSystem.IsFollowingTarget = false;
+                        drivingSystem.IsFollowingPerson = false;
                         drivingSystem.Stop();
                         break;
                     case "reset":
@@ -76,7 +81,9 @@ namespace RobotProject
         }
 
 
-        public async void Update()
+
+
+        public async virtual void Update()
         {
             // Perform component updates
             foreach (var component in _components)
@@ -89,15 +96,26 @@ namespace RobotProject
             if (buttonLedController.GetButtonStatus().PressingDuration >= 1000)
             {
                 // Start met aftellen
-
-
                 if (buttonLedController.GetButtonStatus().PressingDuration >= 3000)
                 {
                     drivingSystem.EmergencyStop();
-                    await mqttMessageHandler.SendMessage("De noodstopknop is ingedrukt", TopicType.Alert);
+                    loggingSystem.LogToLcd("De Noodstop is ingedrukt!");
+                    await mqttMessageHandler.SendMessage("Noodstop", TopicType.Alert);
                 }
 
             }
+
+            // if (pIRMotion.Watch() == 1)
+            // {
+            //     if (drivingSystem.HasPerformedScan && !drivingSystem.IsPersonFound)
+            //     {
+            //         drivingSystem.StarScanning();
+            //     }
+            // }
+            // else
+            // {
+            //     // Idle timer: 10 minuten geen motion , {naam}, bent u er nog?
+            // }
 
         }
 

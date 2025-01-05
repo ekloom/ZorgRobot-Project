@@ -5,10 +5,9 @@ namespace RobotProject.ControlSystems
     internal class ObstacleDetectionSystem : IUpdatable
     {
 
-        private int _distance;
+        public int Distance { get; private set; }
         private int scanInterval = 500;
 
-        private int detectionThreshold;
 
         private Ultrasonic distanceSensor;
         private PeriodTimer scanIntervalTimer;
@@ -17,14 +16,6 @@ namespace RobotProject.ControlSystems
         {
             distanceSensor = new Ultrasonic(UltrasonicPinNumber);
             scanIntervalTimer = new PeriodTimer(scanInterval);
-            detectionThreshold = 50;
-        }
-
-        public bool IsPathClear() => GetDistanceToSensor() >= detectionThreshold;
-
-        public int GetDistanceToSensor()
-        {
-            return _distance;
         }
 
         public void Update()
@@ -32,7 +23,7 @@ namespace RobotProject.ControlSystems
             if (scanIntervalTimer.Check())
             {
                 // Sets the distance field to the current detected distance from the robot
-                _distance = distanceSensor.GetUltrasoneDistance();
+                Distance = distanceSensor.GetUltrasoneDistance();
             }
         }
     }
