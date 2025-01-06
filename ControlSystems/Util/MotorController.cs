@@ -11,7 +11,27 @@ public abstract class MotorController : IUpdatable
   protected short CurrentMotorSpeedL;
   protected short CurrentMotorSpeedR;
 
-  public void Drive(Direction direction, short Speed)
+  private readonly Queue<MotorCommand> _commandQueue;
+
+  public MotorController()
+  {
+    _commandQueue = new();
+  }
+
+  private const int MaxQueueSize = 20;
+
+  public void EnqueDrive(Direction direction, short speed)
+  {
+    if (_commandQueue.Count >= MaxQueueSize)
+    {
+      _commandQueue.Dequeue(); // Discard the oldest command
+    }
+    _commandQueue.Enqueue(new MotorCommand(direction, speed));
+    Console.WriteLine("CommandQueue Size: {0}", _commandQueue.Count);
+  }
+
+
+  private void ExecuteDrive(Direction direction, short Speed)
   {
 
     short leftSpeed = 0;
@@ -32,13 +52,13 @@ public abstract class MotorController : IUpdatable
     if (direction.HasFlag(Direction.Right))
     {
       // only if forward and right angles is requested the same time
-      // rightSpeed += (short)(Speed / 2);
       rightSpeed += Speed;
+      leftSpeed -= Speed;
     }
 
     if (direction.HasFlag(Direction.Left))
     {
-      // leftSpeed += (short)(Speed / 2);
+      rightSpeed -= Speed;
       leftSpeed += Speed;
     }
 
@@ -47,69 +67,94 @@ public abstract class MotorController : IUpdatable
 
     _motorMode = MotorMode.Run;
   }
-  public void EaseOutMotors(ref short currentMotorSpeedL, ref short currentMotorSpeedR, short targetSpeedLeft, short targetSpeedRight)
+
+  void GradualDrive(short targetSpeedL, short targetSpeedR, short step)
   {
-    const float stepTimeMs = 50.0f; // Time per step in milliseconds
-    const float durationMs = 3000.0f; // Total duration for ease out (adjust as needed)
-    float elapsedTime = 0.0f;
-
-    while (elapsedTime <= durationMs)
+    // Adjust the left motor speed
+    if (CurrentMotorSpeedL < targetSpeedL)
     {
-      // Calculate the progress normalized to [0, 1]
-      float t = elapsedTime / durationMs;
-
-      // Apply the easing function
-      float easedT = MathFunctions.EaseOutCubic(t);
-
-      // Interpolate motor speeds
-      currentMotorSpeedL = (short)(currentMotorSpeedL + (targetSpeedLeft - currentMotorSpeedL) * easedT);
-      currentMotorSpeedR = (short)(currentMotorSpeedR + (targetSpeedRight - currentMotorSpeedR) * easedT);
-
-      // Update motor speed
-      SetMotorSpeed(currentMotorSpeedL, currentMotorSpeedR);
-      Console.WriteLine("Motor L: {0}, Motor R: {1}", currentMotorSpeedL, currentMotorSpeedR);
-
-      // Break the loop if speeds are close enough to target
-      if (Math.Abs(currentMotorSpeedL - targetSpeedLeft) <= 1 && Math.Abs(currentMotorSpeedR - targetSpeedRight) <= 1)
-      {
-        break;
-      }
-
-      // Wait and increment time
-      Robot.Wait((int)stepTimeMs / 2);
-      elapsedTime += stepTimeMs;
+      CurrentMotorSpeedL += step;
+      if (CurrentMotorSpeedL > targetSpeedL) CurrentMotorSpeedL = targetSpeedL;
+    }
+    else if (CurrentMotorSpeedL > targetSpeedL)
+    {
+      CurrentMotorSpeedL -= step;
+      if (CurrentMotorSpeedL < targetSpeedL) CurrentMotorSpeedL = targetSpeedL;
     }
 
-    // Ensure the final speeds are set to target
-    currentMotorSpeedL = targetSpeedLeft;
-    currentMotorSpeedR = targetSpeedRight;
-    SetMotorSpeed(targetSpeedLeft, targetSpeedRight);
+    // Adjust the right motor speed
+    if (CurrentMotorSpeedR < targetSpeedR)
+    {
+      CurrentMotorSpeedR += step;
+      if (CurrentMotorSpeedR > targetSpeedR) CurrentMotorSpeedR = targetSpeedR;
+    }
+    else if (CurrentMotorSpeedR > targetSpeedR)
+    {
+      CurrentMotorSpeedR -= step;
+      if (CurrentMotorSpeedR < targetSpeedR) CurrentMotorSpeedR = targetSpeedR;
+    }
+
+    // Apply the speeds to the motors
+    SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
   }
+
 
   public void SetMotorSpeed(short SpeedL, short SpeedR)
   {
-    // Apply speed ti the motors
-    Robot.Motors(SpeedL, SpeedR);
+
+    try
+    {
+      Robot.Motors(SpeedL, SpeedR);
+    }
+    catch (IOException ex)
+    {
+      Console.WriteLine($"I2C communication error: {ex.Message}");
+      // Optional: implement a retry mechanism
+      Robot.Wait(100); // Add a small delay before retrying
+    }
+
   }
   public virtual void Update()
   {
+
+    if (_commandQueue.Count > 0)
+    {
+      var command = _commandQueue.Dequeue();
+      ExecuteDrive(command.Direction, command.Speed);
+    }
+
+    // Existing switch logic here...
     switch (_motorMode)
     {
       case MotorMode.stop:
-        if (CurrentMotorSpeedL != 0 && CurrentMotorSpeedR != 0)
+        if (CurrentMotorSpeedL != 0 || CurrentMotorSpeedR != 0)
         {
-          EaseOutMotors(ref CurrentMotorSpeedL, ref CurrentMotorSpeedR, 0, 0);
+          GradualDrive(0, 0, 20);
         }
         break;
+
       case MotorMode.Run:
         if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
         {
-          EaseOutMotors(ref CurrentMotorSpeedL, ref CurrentMotorSpeedR, _targetSpeedL, _targetSpeedR);
+          GradualDrive(_targetSpeedL, _targetSpeedR, CurrentMotorSpeedR);
         }
         break;
-
     }
 
+    Robot.Wait(50);
+  }
+
+}
+
+public class MotorCommand
+{
+  public Direction Direction { get; }
+  public short Speed { get; }
+
+  public MotorCommand(Direction direction, short speed)
+  {
+    Direction = direction;
+    Speed = speed;
   }
 }
 

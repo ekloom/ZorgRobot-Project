@@ -109,7 +109,7 @@ namespace RobotProject
             // {
             //     if (drivingSystem.HasPerformedScan && !drivingSystem.IsPersonFound)
             //     {
-            //         drivingSystem.StarScanning();
+            //         drivingSystem.StartScanning();
             //     }
             // }
             // else

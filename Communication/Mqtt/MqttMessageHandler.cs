@@ -15,7 +15,6 @@ public class MqttMessageHandler
 
     _mqttClient.OnMessageReceived += HandleMessage;
 
-    SendMessage("Zorgrobot is connected!", TopicType.Info);
   }
 
   public async Task SendMessage(string message, TopicType topicType)
@@ -39,13 +38,12 @@ public class MqttMessageHandler
   public async Task Init()
   {
     await _mqttClient.SubscribeToTopic("/Command");
+    SendMessage("Zorgrobot is online!", TopicType.Info);
   }
 
   private void HandleMessage(object sender, SimpleMqttMessage? args)
   {
-    // save je data mbv je repo
-    // Wllicht wil je ook je data opslaan in een database?
-    Console.WriteLine($"Incoming Command on {args.Topic}:{args.Message}");
+    Console.WriteLine($"Command received: {args.Topic} {args.Message}");
     OnMessageReceived?.Invoke(sender, args.Message);
   }
 }
