@@ -24,21 +24,21 @@ public class MqttMessageHandler
     switch (topicType)
     {
       case TopicType.Alert:
-        topic = "/Alert";
+        topic = "Alert";
         break;
       case TopicType.Info:
-        topic = "/Info";
+        topic = "Info";
         break;
     }
 
-    System.Console.WriteLine(message);
+    System.Console.WriteLine($"Message being send to MQTT: Topic = {topic}, Message = {message}");
     await _mqttClient.PublishMessage(message, topic);
   }
 
   public async Task Init()
   {
-    await _mqttClient.SubscribeToTopic("/Command");
-    SendMessage("Zorgrobot is online!", TopicType.Info);
+    await _mqttClient.SubscribeToTopic("Command");
+    SendMessage("Memento is online!", TopicType.Info);
   }
 
   private void HandleMessage(object sender, SimpleMqttMessage? args)
