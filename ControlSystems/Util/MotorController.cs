@@ -6,21 +6,26 @@ public abstract class MotorController : IUpdatable
 {
 
   protected MotorMode _motorMode;
+
+
   protected short _targetSpeedL;
   protected short _targetSpeedR;
   protected short CurrentMotorSpeedL;
   protected short CurrentMotorSpeedR;
 
   private readonly Queue<MotorCommand> _commandQueue;
+  private bool _IsCommandActive;
 
   public MotorController()
   {
     _commandQueue = new();
+    _IsCommandActive = false;
   }
 
   private const int MaxQueueSize = 20;
 
-  public void EnqueDrive(Direction direction, short speed)
+  // Enqueues the command
+  public void Drive(Direction direction, short speed)
   {
     if (_commandQueue.Count >= MaxQueueSize)
     {
@@ -28,6 +33,12 @@ public abstract class MotorController : IUpdatable
     }
     _commandQueue.Enqueue(new MotorCommand(direction, speed));
     Console.WriteLine("CommandQueue Size: {0}", _commandQueue.Count);
+  }
+
+  public void ResetMotors()
+  {
+    _commandQueue.Clear();
+    _IsCommandActive = false;
   }
 
 
@@ -96,12 +107,13 @@ public abstract class MotorController : IUpdatable
 
     // Apply the speeds to the motors
     SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
+
+    if (CurrentMotorSpeedL == targetSpeedL && CurrentMotorSpeedR == targetSpeedR) _IsCommandActive = false;
   }
 
 
   public void SetMotorSpeed(short SpeedL, short SpeedR)
   {
-
     try
     {
       Robot.Motors(SpeedL, SpeedR);
@@ -117,10 +129,11 @@ public abstract class MotorController : IUpdatable
   public virtual void Update()
   {
 
-    if (_commandQueue.Count > 0)
+    if (!_IsCommandActive && _commandQueue.Count > 0)
     {
       var command = _commandQueue.Dequeue();
       ExecuteDrive(command.Direction, command.Speed);
+      _IsCommandActive = true;
     }
 
     // Existing switch logic here...
@@ -129,14 +142,14 @@ public abstract class MotorController : IUpdatable
       case MotorMode.stop:
         if (CurrentMotorSpeedL != 0 || CurrentMotorSpeedR != 0)
         {
-          GradualDrive(0, 0, 20);
+          GradualDrive(0, 0, 5);
         }
         break;
 
       case MotorMode.Run:
         if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
         {
-          GradualDrive(_targetSpeedL, _targetSpeedR, CurrentMotorSpeedR);
+          GradualDrive(_targetSpeedL, _targetSpeedR, 5);
         }
         break;
     }
