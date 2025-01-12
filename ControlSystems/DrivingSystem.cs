@@ -1,4 +1,3 @@
-using Avans.StatisticalRobot;
 using RobotProject.ControlSystems.Util;
 
 namespace RobotProject.ControlSystems;
@@ -20,25 +19,28 @@ internal class DrivingSystem : MotorController
     private int _maxDistanceFromPerson = 250;
     private int _minDistanceFromPerson = 50;
 
-    public bool IsFollowingPerson { get; set; }
+    public DrivingMode DrivingMode { get; set; }
+
     public bool IsPersonFound { get; private set; }
     public bool HasPerformedScan { get; private set; }
+
+    static DateTime lastScanTime;
 
     public DrivingSystem(ObstacleDetectionSystem obstacleDetectionSystem, LoggingSystem loggingSystem)
     {
         _motorMode = MotorMode.stop;
         _obstacleDetectionSystem = obstacleDetectionSystem;
         _loggingSystem = loggingSystem;
-        SetMotorSpeed(0, 0);
+        SetMotorSpeed(0, 0); // Set motor speed to 0
     }
 
     public void Reset()
     {
-        _motorMode = MotorMode.stop;
-        isEmergencyStop = false;
-        IsFollowingPerson = false;
-        CurrentMotorSpeedL = 0;
-        CurrentMotorSpeedR = 0;
+        _motorMode = MotorMode.stop; // Set the motor mode to stop
+        isEmergencyStop = false; // Reset the emergency stop flag
+        DrivingMode = DrivingMode.Autonome; // Set the driving mode to Autonome
+        CurrentMotorSpeedL = 0; // Set 'CurrentMotorSpeedL' to 0
+        CurrentMotorSpeedR = 0; // Set 'CurrentMotorSpeedR' to 0
     }
 
     public void Stop()
@@ -49,20 +51,27 @@ internal class DrivingSystem : MotorController
 
     public void EmergencyStop()
     {
-        isEmergencyStop = true;
-        _motorMode = MotorMode.stop;
-        SetMotorSpeed(0, 0);
+        isEmergencyStop = true; // set the emergency stop flag to true
+        _motorMode = MotorMode.stop; // Set the motor mode to stop
+        SetMotorSpeed(0, 0); // stop motors
+        ResetMotors();
         System.Console.WriteLine("EmergencyStop activated!");
+    }
+
+    public void DriveAutonome()
+    {
+
     }
 
     public void StartScanning()
     {
-        _totalRotation = 0;
-        _scanstep = 30;
-        _isScanning = true;
-        HasPerformedScan = false;
-        _lastDetectedDistance = float.MaxValue;
-        IsFollowingPerson = false;
+        _totalRotation = 0; // Reset the total rotation counter
+        _scanstep = 45; // Setting the scan step to 45 degrees
+        _isScanning = true; // Setting the scanning flag to true
+        HasPerformedScan = false; // Reset the scan flag
+        lastScanTime = DateTime.MinValue; // Reset the last scan time
+        _lastDetectedDistance = float.MaxValue; // Reset the last detected distance
+        DrivingMode = DrivingMode.FollowPerson; // Set the driving mode to follow person
         Stop();
     }
 
@@ -70,51 +79,39 @@ internal class DrivingSystem : MotorController
     {
         if (!_isScanning) return;
 
+        const int waitTimeMs = 1000; // 1 second wait
+
         _totalRotation += _scanstep;
 
+        // Check if enough time has passed
+        if ((DateTime.Now - lastScanTime).TotalMilliseconds < waitTimeMs)
+        {
+            // Continue waiting
+            return;
+        }
+
+        // Update the last scan time
+        lastScanTime = DateTime.Now;
+
+        // Gets the current distance to a osbtacle
         int currentDistance = _obstacleDetectionSystem.Distance;
 
         // Update the closest distance detected
         if (currentDistance < _lastDetectedDistance && currentDistance < _maxDistanceFromPerson)
         {
-            _lastDetectedDistance = currentDistance;
-            _targetAngle = _totalRotation;
+            // Start turning 45 degrees
+
+            // Stop motion
+            Stop();
         }
 
-        // Adjust rotation towards the target angle
-        int adjustments = _targetAngle - _totalRotation;
-
-        if (Math.Abs(adjustments) > _scanstep)
+        // Stop scanning if a full rotation is completed or a close distance is detected
+        if (_totalRotation >= 360 || (_lastDetectedDistance > _minDistanceFromPerson && _lastDetectedDistance < _maxDistanceFromPerson))
         {
-            Direction dir = adjustments > 0 ? Direction.Right : Direction.Left;
-            EnqueDrive(dir, (short)Math.Min(Math.Abs(adjustments), 50));
-        }
 
-        Console.WriteLine("Scanning - TotalRotation: {0}, TargetAngle: {1}, Distance: {2}", _totalRotation, _targetAngle, _lastDetectedDistance);
-
-        // Stop scanning if a full rotation or close distance is detected
-        if (_totalRotation >= 360 || _lastDetectedDistance < _maxDistanceFromPerson / 2)
-        {
-            _isScanning = false; // Stop scanning
-
-            if (_lastDetectedDistance > _minDistanceFromPerson && _lastDetectedDistance < _maxDistanceFromPerson)
-            {
-                EnqueDrive(Direction.Forward, 50); // Drive forward towards the person
-
-                // Dynamically adjust the minimum and maximum distances based on last detection
-                _minDistanceFromPerson = Math.Max((int)(_lastDetectedDistance * 0.8), 20); // Minimum distance is 80% of last detected
-                _maxDistanceFromPerson = Math.Min((int)(_lastDetectedDistance * 1.5), 400); // Maximum distance is 150% of last detected
-
-                Console.WriteLine("Updated Distances - Min: {0}, Max: {1}", _minDistanceFromPerson, _maxDistanceFromPerson);
-                IsFollowingPerson = true;
-            }
-            // else
-            // {
-            //     Stop();
-            //     HasPerformedScan = true;
-            // }
         }
     }
+
 
     void FollowPerson()
     {
@@ -123,11 +120,11 @@ internal class DrivingSystem : MotorController
         // Check if the person is within the updated range
         if (distance > _minDistanceFromPerson && distance < _maxDistanceFromPerson)
         {
-            EnqueDrive(Direction.Forward, 50); // Keep following the person
+            Drive(Direction.Forward, 50); // Keep following the person
             _loggingSystem.LogToLcd("Following person...");
 
             // Dynamically adjust the follow range as the person moves
-            _minDistanceFromPerson = Math.Max((int)(distance * 0.8), 20); // Minimum distance is 80% of current
+            _minDistanceFromPerson = Math.Max((int)(distance * 0.8), 40); // Minimum distance is 80% of current
             _maxDistanceFromPerson = Math.Min((int)(distance * 1.5), 400); // Maximum distance is 150% of current
 
             Console.WriteLine("Updated Distances While Following - Min: {0}, Max: {1}", _minDistanceFromPerson, _maxDistanceFromPerson);
@@ -148,9 +145,17 @@ internal class DrivingSystem : MotorController
         if (!isEmergencyStop)
         {
 
-            if (IsFollowingPerson)
+            switch (DrivingMode)
             {
-                FollowPerson();
+                case DrivingMode.Idle:
+                    Stop();
+                    break;
+                case DrivingMode.Autonome:
+                    DriveAutonome();
+                    break;
+                case DrivingMode.FollowPerson:
+                    FollowPerson();
+                    break;
             }
 
             if (_isScanning)
@@ -164,6 +169,11 @@ internal class DrivingSystem : MotorController
 
 }
 
-
+public enum DrivingMode
+{
+    Idle,
+    Autonome,
+    FollowPerson
+}
 
 
