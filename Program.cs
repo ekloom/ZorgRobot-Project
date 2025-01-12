@@ -27,7 +27,6 @@ var RobotManager = new RobotManager();
 
 RobotManager.Init();
 
-// Thread.Sleep(5000);
 Robot.Wait(5000);
 while (true)
 {

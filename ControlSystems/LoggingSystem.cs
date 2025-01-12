@@ -11,9 +11,10 @@ public class LoggingSystem
 
   static string tempMessage;
 
-  public LoggingSystem(LCD16x2 LCD16x2)
+  public LoggingSystem(byte pinNumber)
   {
-    LCD = LCD16x2;
+    LCD = new LCD16x2(pinNumber);
+    tempMessage = "";
   }
 
   public void LogToLcd(string message)

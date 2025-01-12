@@ -12,7 +12,7 @@ namespace RobotProject
 
         // Controllers and systems
         private readonly DrivingSystem drivingSystem;
-
+        private readonly InteractionSystem interactionSystem;
         protected readonly ButtonLedController buttonLedController;
 
         private readonly ObstacleDetectionSystem obstacleDetectionSystem;
@@ -26,9 +26,7 @@ namespace RobotProject
 
         private LCD16x2 LCD;
 
-        private readonly string robotName;
-
-        public RobotManager()
+        public RobotManager() : base()
         {
 
             pIRMotion = new PIRMotion(18, 100, 15);
@@ -43,35 +41,51 @@ namespace RobotProject
 
             drivingSystem = new DrivingSystem(obstacleDetectionSystem, loggingSystem);
 
-
+            interactionSystem = new InteractionSystem(buttonLedController, 10);
 
             mqttMessageHandler = new MqttMessageHandler();
+
             _components = new List<IUpdatable>{
                 obstacleDetectionSystem,
                 buttonLedController,
-                drivingSystem
+                drivingSystem,
+                interactionSystem
             };
 
-            robotName = "Memento";
+
         }
 
         public void Init()
         {
             // Display welcome message
-            loggingSystem.LogToLcd($"Welkom! Ik ben {robotName}!");
+            loggingSystem.LogToLcd($"Welkom! Ik ben Memento!");
             mqttMessageHandler.Init();
 
 
             mqttMessageHandler.OnMessageReceived += (s, e) =>
             {
-                switch (e.ToLower())
+
+                string command = e.ToLower();
+                // 
+                interactionSystem.Query("#");
+
+                // this is for the interaction logic
+                if (command.Contains("#"))
+                {
+                    // Disect till the #
+                    // Use switch case
+
+                    // Option: #request id number ("Ben je er nog?")
+                }
+
+                /**/
+                switch (command)
                 {
                     case "start":
-                        drivingSystem.IsFollowingPerson = true;
+                        drivingSystem.DrivingMode = DrivingMode.Autonome;
                         break;
                     case "stop":
-                        drivingSystem.IsFollowingPerson = false;
-                        drivingSystem.Stop();
+                        drivingSystem.DrivingMode = DrivingMode.Idle;
                         break;
                     case "reset":
                         drivingSystem.Reset();
@@ -91,8 +105,6 @@ namespace RobotProject
                 component.Update();
             }
 
-            // System.Console.WriteLine(pIRMotion.Watch());
-
             if (buttonLedController.GetButtonStatus().PressingDuration >= 1000)
             {
                 // Start met aftellen
@@ -105,17 +117,11 @@ namespace RobotProject
 
             }
 
-            // if (pIRMotion.Watch() == 1)
-            // {
-            //     if (drivingSystem.HasPerformedScan && !drivingSystem.IsPersonFound)
-            //     {
-            //         drivingSystem.StartScanning();
-            //     }
-            // }
-            // else
-            // {
-            //     // Idle timer: 10 minuten geen motion , {naam}, bent u er nog?
-            // }
+            if (interactionSystem.Response != null)
+            {
+                await mqttMessageHandler.SendMessage(interactionSystem.Response, TopicType.Info);
+            }
+
 
         }
 
