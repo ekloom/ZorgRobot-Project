@@ -25,7 +25,7 @@ using GyroscopeCompass.GyroscopeCompass;
 
 var RobotManager = new RobotManager();
 
-RobotManager.Init();
+await RobotManager.Init();
 
 Robot.Wait(5000);
 while (true)
