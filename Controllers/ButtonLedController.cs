@@ -16,6 +16,12 @@ public class ButtonLedController : IUpdatable
 
   bool wasButtonPressed;
 
+  bool IsLedFlickering;
+  int _timesToFlicker;
+  int flickerCount;
+  TimeSpan flickerInterval;
+  DateTime lastTimeFlickerd;
+
   const int debounceTimeMs = 250; // The debounce time in milliseconds
   const int longpressThreshold = 1000; // Threshold for the long press in milliseconds
   const int resetTimeOutMs = 3000; // The time out in milliseconds 
@@ -31,6 +37,22 @@ public class ButtonLedController : IUpdatable
   }
 
   public ButtonStatus GetButtonStatus() => buttonStatus;
+
+  /// <summary>
+  /// 
+  /// </summary>
+  /// <param name="timesToFlicker">How many times the led should flicker</param>
+  /// <param name="delayBetweenFlicker">The delay between the flickering in seconds</param>
+  public void FlickerLed(int timesToFlicker, int delayBetweenFlicker)
+  {
+    if (!IsLedFlickering)
+    {
+      IsLedFlickering = true;
+      _timesToFlicker = timesToFlicker;
+      flickerCount = 0;
+      flickerInterval = TimeSpan.FromSeconds(delayBetweenFlicker);
+    }
+  }
 
   public void Update()
   {
@@ -60,7 +82,6 @@ public class ButtonLedController : IUpdatable
       if (!wasButtonPressed)
       {
         wasButtonPressed = true;
-        buttonStatus.IsSwitchedOn = !buttonStatus.IsSwitchedOn;
       }
 
       if ((DateTime.Now - buttonPressStartTime.Value).TotalMilliseconds >= longpressThreshold)
@@ -89,14 +110,29 @@ public class ButtonLedController : IUpdatable
       }
     }
 
-    // if (buttonStatus.IsSwitchedOn)
-    // {
-    //   led.SetOn();
-    // }
-    // else
-    // {
-    //   led.SetOff();
-    // }
+    if (IsLedFlickering && flickerCount <= _timesToFlicker && (DateTime.Now - lastTimeFlickerd) >= flickerInterval)
+    {
+
+      lastTimeFlickerd = DateTime.Now;
+
+      if (!buttonStatus.IsLedOn)
+      {
+        buttonStatus.IsLedOn = true;
+        led.SetOn();
+      }
+      else
+      {
+        buttonStatus.IsLedOn = false;
+        led.SetOff();
+        flickerCount++;
+      }
+      Robot.Wait(100);
+    }
+    else
+    {
+      buttonStatus.IsLedOn = false;
+      led.SetOff();
+    }
 
     // Standard debounce time
     // Robot.Wait(50);
@@ -110,7 +146,7 @@ public class ButtonStatus
 
   public int PressingDuration { get; internal set; }
 
-  public bool IsSwitchedOn { get; internal set; }
+  public bool IsLedOn { get; internal set; }
 
   public bool isButtonPressed { get; internal set; }
 }
