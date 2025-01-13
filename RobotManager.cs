@@ -13,27 +13,25 @@ namespace RobotProject
         // Controllers and systems
         private readonly DrivingSystem drivingSystem;
         private readonly InteractionSystem interactionSystem;
+        private readonly CommandHandler commandHandler;
         protected readonly ButtonLedController buttonLedController;
-
         private readonly ObstacleDetectionSystem obstacleDetectionSystem;
 
         private readonly LoggingSystem loggingSystem;
 
         protected readonly MqttMessageHandler mqttMessageHandler;
 
-        // Actuators
-        private readonly PIRMotion pIRMotion;
 
-        private LCD16x2 LCD;
+        bool isInitializing;
 
         public RobotManager() : base()
         {
 
-            pIRMotion = new PIRMotion(18, 100, 15);
+            // pIRMotion = new PIRMotion(18, 100, 15);
 
-            LCD = new LCD16x2(0x3E);
+            mqttMessageHandler = new MqttMessageHandler();
 
-            loggingSystem = new LoggingSystem(LCD);
+            loggingSystem = new LoggingSystem(0x3E);
 
             buttonLedController = new ButtonLedController(6);
 
@@ -43,7 +41,8 @@ namespace RobotProject
 
             interactionSystem = new InteractionSystem(buttonLedController, 10);
 
-            mqttMessageHandler = new MqttMessageHandler();
+            commandHandler = new CommandHandler();
+
 
             _components = new List<IUpdatable>{
                 obstacleDetectionSystem,
@@ -55,49 +54,46 @@ namespace RobotProject
 
         }
 
-        public void Init()
+        public async Task Init()
         {
             // Display welcome message
             loggingSystem.LogToLcd($"Welkom! Ik ben Memento!");
-            mqttMessageHandler.Init();
+            await mqttMessageHandler.Init();
+
+            isInitializing = true;
+
+
+            commandHandler.AddCommand("start", () => drivingSystem.DrivingMode = DrivingMode.Autonome);
+            commandHandler.AddCommand("stop", () => drivingSystem.DrivingMode = DrivingMode.Idle);
+            commandHandler.AddCommand("reset", () => drivingSystem.Reset());
 
 
             mqttMessageHandler.OnMessageReceived += (s, e) =>
             {
 
                 string command = e.ToLower();
-                // 
+
                 interactionSystem.Query("#");
 
                 // this is for the interaction logic
                 if (command.Contains("#"))
                 {
                     // Disect till the #
-                    // Use switch case
 
                     // Option: #request id number ("Ben je er nog?")
                 }
-
-                /**/
-                switch (command)
+                else
                 {
-                    case "start":
-                        drivingSystem.DrivingMode = DrivingMode.Autonome;
-                        break;
-                    case "stop":
-                        drivingSystem.DrivingMode = DrivingMode.Idle;
-                        break;
-                    case "reset":
-                        drivingSystem.Reset();
-                        break;
+                    commandHandler.ExecuteCommand(command);
                 }
+
             };
         }
 
 
 
 
-        public async virtual void Update()
+        public async void Update()
         {
             // Perform component updates
             foreach (var component in _components)
@@ -117,12 +113,18 @@ namespace RobotProject
 
             }
 
+            if (isInitializing)
+            {
+                // initializing manouvre
+
+
+                isInitializing = false;
+            }
+
             if (interactionSystem.Response != null)
             {
                 await mqttMessageHandler.SendMessage(interactionSystem.Response, TopicType.Info);
             }
-
-
         }
 
 
