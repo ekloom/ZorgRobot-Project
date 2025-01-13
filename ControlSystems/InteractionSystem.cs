@@ -1,4 +1,3 @@
-using System;
 using RobotProject.Controllers;
 
 namespace RobotProject.ControlSystems;
@@ -6,7 +5,9 @@ namespace RobotProject.ControlSystems;
 public class InteractionSystem : IUpdatable
 {
 
-  readonly ButtonStatus ButtonStatus;
+  ButtonStatus ButtonStatus;
+
+  ButtonLedController buttonLedController;
 
   private DateTime queryStartTime;
   private TimeSpan timeout;
@@ -17,20 +18,24 @@ public class InteractionSystem : IUpdatable
 
   public InteractionSystem(ButtonLedController buttonLedController, int queryTimeout)
   {
-    ButtonStatus = buttonLedController.GetButtonStatus();
+    this.buttonLedController = buttonLedController;
     timeout = TimeSpan.FromSeconds(queryTimeout); // 10 seconds timeout
   }
 
   public void Query(string query)
   {
+
     if (!IsRequesting)
     {
-      Response = "";
-      QueryID = query;
+      Response = ""; // Reset response
+      QueryID = query; // Store query ID
       IsRequesting = true;
       queryStartTime = DateTime.Now;
       PlayWavForQuery(query);
     }
+
+    ButtonStatus = buttonLedController.GetButtonStatus(); // Get button status
+
   }
 
   public void Update()
