@@ -1,3 +1,4 @@
+using Avans.StatisticalRobot;
 using RobotProject.ControlSystems.Util;
 
 namespace RobotProject.ControlSystems;
@@ -6,8 +7,6 @@ internal class DrivingSystem : MotorController
 {
     private readonly ObstacleDetectionSystem _obstacleDetectionSystem;
     private readonly LoggingSystem _loggingSystem;
-
-
     private bool isEmergencyStop;
 
     private bool _isScanning;
@@ -20,9 +19,10 @@ internal class DrivingSystem : MotorController
     private int _minDistanceFromPerson = 50;
 
     public DrivingMode DrivingMode { get; set; }
-
     public bool IsPersonFound { get; private set; }
     public bool HasPerformedScan { get; private set; }
+
+    // private readonly PIRMotion pIRMotion;
 
     static DateTime lastScanTime;
 
