@@ -153,8 +153,6 @@ public class SimpleMqttClient : IDisposable
     public static SimpleMqttClient CreateSimpleMqttClientForHiveMQ(string clientId)
     {
 
-
-
         var mqttWrapper = new SimpleMqttClient(new()
         {
             Host = "99cba3f1321a43acbf17b4553dd71dca.s1.eu.hivemq.cloud", // maak eventueel een account aan bij hivemq als dit problemen geeft.
