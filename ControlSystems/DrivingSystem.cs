@@ -16,7 +16,8 @@ internal class DrivingSystem : MotorController
     private int _totalRotation = 0;
 
     private int _maxDistanceFromPerson = 250;
-    private int _minDistanceFromPerson = 50;
+    private int _minDistanceFromObstacle = 30;
+
 
     public DrivingMode DrivingMode { get; set; }
     public bool IsPersonFound { get; private set; }
@@ -28,7 +29,7 @@ internal class DrivingSystem : MotorController
 
     public DrivingSystem(ObstacleDetectionSystem obstacleDetectionSystem, LoggingSystem loggingSystem)
     {
-        _motorMode = MotorMode.stop;
+        ResetMotors();
         _obstacleDetectionSystem = obstacleDetectionSystem;
         _loggingSystem = loggingSystem;
         SetMotorSpeed(0, 0); // Set motor speed to 0
@@ -36,24 +37,20 @@ internal class DrivingSystem : MotorController
 
     public void Reset()
     {
-        _motorMode = MotorMode.stop; // Set the motor mode to stop
+        ResetMotors();
         isEmergencyStop = false; // Reset the emergency stop flag
-        DrivingMode = DrivingMode.Autonome; // Set the driving mode to Autonome
-        CurrentMotorSpeedL = 0; // Set 'CurrentMotorSpeedL' to 0
-        CurrentMotorSpeedR = 0; // Set 'CurrentMotorSpeedR' to 0
+        DrivingMode = DrivingMode.Idle; // Set the driving mode to Autonome
     }
 
     public void Stop()
     {
-        _motorMode = MotorMode.stop;
-        System.Console.WriteLine("Motor stopped!");
+        Drive(0, Direction.None);
     }
 
     public void EmergencyStop()
     {
         isEmergencyStop = true; // set the emergency stop flag to true
-        _motorMode = MotorMode.stop; // Set the motor mode to stop
-        SetMotorSpeed(0, 0); // stop motors
+        SetMotorSpeed(0, 0); // stops the motors
         ResetMotors();
         System.Console.WriteLine("EmergencyStop activated!");
     }
@@ -61,6 +58,21 @@ internal class DrivingSystem : MotorController
     public void DriveAutonome()
     {
 
+        int distance = _obstacleDetectionSystem.Distance;
+
+        if (distance <= _minDistanceFromObstacle)
+        {
+            Stop();
+            Drive(20, Direction.Left);
+            _loggingSystem.LogToLcd($"Obstacle close up: {distance}");
+        }
+        else
+        {
+
+            Drive(30, Direction.Forward);
+        }
+
+        _loggingSystem.LogToLcd($"Obstacle detected at: {distance}");
     }
 
     public void StartScanning()
@@ -69,44 +81,60 @@ internal class DrivingSystem : MotorController
         _scanstep = 45; // Setting the scan step to 45 degrees
         _isScanning = true; // Setting the scanning flag to true
         HasPerformedScan = false; // Reset the scan flag
-        lastScanTime = DateTime.MinValue; // Reset the last scan time
+
+        lastScanTime = DateTime.Now;
         _lastDetectedDistance = float.MaxValue; // Reset the last detected distance
-        DrivingMode = DrivingMode.FollowPerson; // Set the driving mode to follow person
-        Stop();
+        // DrivingMode = DrivingMode.FollowPerson; // Set the driving mode to follow person
     }
 
+
+    const int waitTimeMs = 1000; // 1 second wait
     void PerformScanning()
     {
         if (!_isScanning) return;
 
-        const int waitTimeMs = 1000; // 1 second wait
 
         _totalRotation += _scanstep;
+
+        //Time to wait till its 90 degrees
+        if ((DateTime.Now - lastScanTime).TotalMilliseconds < 5000)
+        {
+            Stop();
+        }
+        else
+        {
+            Drive((short)_scanstep, Direction.Left);
+            // // Update the last scan time
+        }
+
 
         // Check if enough time has passed
         if ((DateTime.Now - lastScanTime).TotalMilliseconds < waitTimeMs)
         {
+
+            // Gets the current distance to a osbtacle
+            int currentDistance = _obstacleDetectionSystem.Distance;
+
+
+            // This means that something is moving away
+            if (currentDistance > _lastDetectedDistance)
+            {
+
+            }
+
+            _lastDetectedDistance = currentDistance;
+
+
             // Continue waiting
             return;
         }
 
-        // Update the last scan time
-        lastScanTime = DateTime.Now;
+        // // Update the last scan time
+        // lastScanTime = DateTime.Now;
 
-        // Gets the current distance to a osbtacle
-        int currentDistance = _obstacleDetectionSystem.Distance;
-
-        // Update the closest distance detected
-        if (currentDistance < _lastDetectedDistance && currentDistance < _maxDistanceFromPerson)
-        {
-            // Start turning 45 degrees
-
-            // Stop motion
-            Stop();
-        }
 
         // Stop scanning if a full rotation is completed or a close distance is detected
-        if (_totalRotation >= 360 || (_lastDetectedDistance > _minDistanceFromPerson && _lastDetectedDistance < _maxDistanceFromPerson))
+        if (_totalRotation >= 360 || (_lastDetectedDistance > _minDistanceFromObstacle && _lastDetectedDistance < _maxDistanceFromPerson))
         {
 
         }
@@ -118,16 +146,16 @@ internal class DrivingSystem : MotorController
         int distance = _obstacleDetectionSystem.Distance;
 
         // Check if the person is within the updated range
-        if (distance > _minDistanceFromPerson && distance < _maxDistanceFromPerson)
+        if (distance > _minDistanceFromObstacle && distance < _maxDistanceFromPerson)
         {
-            Drive(Direction.Forward, 50); // Keep following the person
+            Drive(50, Direction.Forward); // Keep following the person
             _loggingSystem.LogToLcd("Following person...");
 
             // Dynamically adjust the follow range as the person moves
-            _minDistanceFromPerson = Math.Max((int)(distance * 0.8), 40); // Minimum distance is 80% of current
+            _minDistanceFromObstacle = Math.Max((int)(distance * 0.8), 40); // Minimum distance is 80% of current
             _maxDistanceFromPerson = Math.Min((int)(distance * 1.5), 400); // Maximum distance is 150% of current
 
-            Console.WriteLine("Updated Distances While Following - Min: {0}, Max: {1}", _minDistanceFromPerson, _maxDistanceFromPerson);
+            Console.WriteLine("Updated Distances While Following - Min: {0}, Max: {1}", _minDistanceFromObstacle, _maxDistanceFromPerson);
         }
         else
         {
@@ -140,7 +168,6 @@ internal class DrivingSystem : MotorController
 
     public override void Update()
     {
-        _lastDetectedDistance = _obstacleDetectionSystem.Distance;
 
         if (!isEmergencyStop)
         {
