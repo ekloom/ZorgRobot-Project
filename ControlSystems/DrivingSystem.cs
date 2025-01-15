@@ -10,7 +10,8 @@ public class DrivingSystem : MotorController
 {
 
     private DrivingContext _context;
-    private IObjectDetectionState _currentState;
+    private IDrivingState _currentState;
+
     public DrivingMode DrivingMode { get; set; }
 
     private bool isEmergencyStop;
@@ -34,7 +35,7 @@ public class DrivingSystem : MotorController
         ResetMotors();
         isEmergencyStop = false; // Reset the emergency stop flag
         DrivingMode = DrivingMode.Idle;
-        _currentState = new AutonomeIdleState(_context);
+        _currentState = new AutonomeIdleState();
     }
 
     public void EmergencyStop()
@@ -45,7 +46,7 @@ public class DrivingSystem : MotorController
         System.Console.WriteLine("EmergencyStop activated!");
     }
 
-    public void SetState(IObjectDetectionState newState)
+    public void SetState(IDrivingState newState)
     {
         _currentState = newState;
     }
@@ -59,19 +60,19 @@ public class DrivingSystem : MotorController
                 // and the system hasn't just transitioned from FollowPerson mode
                 if (_currentState == null || (_currentState is FollowPersonIdleState))
                 {
-                    _currentState = new AutonomeIdleState(_context);
+                    _currentState = new AutonomeIdleState();
                 }
                 break;
 
             case DrivingMode.FollowPerson:
                 if (_currentState == null || (_currentState is AutonomeIdleState))
                 {
-                    _currentState = new FollowPersonIdleState(_context);
+                    _currentState = new FollowPersonIdleState();
                 }
                 break;
 
-            default:
-                _currentState = null;
+            case DrivingMode.Idle:
+                Stop();
                 break;
         }
     }
@@ -85,10 +86,8 @@ public class DrivingSystem : MotorController
             InitializeStateForMode();
             if (_currentState != null)
             {
-                _currentState.Handle(this);
+                _currentState.Handle(this, _context);
             }
-
-
             base.Update();
         }
     }
