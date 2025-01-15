@@ -3,23 +3,14 @@ using RobotProject.ControlSystems.DrivingStrategySystem.BaseStates;
 
 namespace RobotProject.ControlSystems.DrivingStrategySystem.FollowPersonStates;
 
-public class FollowPersonIdleState : DrivingState
+public class FollowPersonIdleState : DrivingState<FollowPersonIdleState>
 {
-
-    private readonly DrivingContext _context;
-
-    // Constructor now takes a DrivingContext as the parameter
-    public FollowPersonIdleState(DrivingContext context)
+    public override void Handle(DrivingSystem system, DrivingContext drivingContext)
     {
-        _context = context;
-    }
-    public override void Handle(DrivingSystem system)
-    {
-        //
 
-        if (_context.PIRMotion.Watch() == 1)
+        if (drivingContext.PIRMotion.Watch() == 1)
         {
-            system.SetState(new FollowPersonCheckingDistanceState(_context));
+            system.SetState(FollowPersonCheckingDistanceState.Instance);
         }
         else
         {

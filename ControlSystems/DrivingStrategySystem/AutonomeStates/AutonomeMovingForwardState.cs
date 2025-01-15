@@ -4,25 +4,17 @@ using RobotProject.ControlSystems.Util;
 
 namespace RobotProject.ControlSystems.DrivingStrategySystem.AutonomeStates;
 
-public class AutonomeMovingForwardState : DrivingState
+public class AutonomeMovingForwardState : DrivingState<AutonomeMovingForwardState>
 {
 
-    private readonly DrivingContext _context;
-
-    // Constructor now takes a DrivingContext as the parameter
-    public AutonomeMovingForwardState(DrivingContext context)
-    {
-        _context = context;
-    }
-
-    public override void Handle(DrivingSystem system)
+    public override void Handle(DrivingSystem system, DrivingContext drivingContext)
     {
         Drive(system, Direction.Forward, 0.25); // Move forward cautiously
-        double currentDistance = _context.ObstacleDetectionSystem.Distance;
+        double currentDistance = drivingContext.ObstacleDetectionSystem.Distance;
 
-        if (currentDistance < _context.SafeDistanceThreshold)
+        if (currentDistance < drivingContext.SafeDistanceThreshold)
         {
-            system.SetState(new AutonomeStoppingState(_context)); // Stop if obstacle is detected
+            system.SetState(AutonomeStoppingState.Instance); // Stop if obstacle is detected
         }
     }
 }

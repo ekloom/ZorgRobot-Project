@@ -3,23 +3,16 @@ using RobotProject.ControlSystems.DrivingStrategySystem.BaseStates;
 
 namespace RobotProject.ControlSystems.DrivingStrategySystem.AutonomeStates;
 
-public class AutonomeStoppingState : DrivingState
+public class AutonomeStoppingState : DrivingState<AutonomeStoppingState>
 {
 
-    private readonly DrivingContext _context;
-
-    // Constructor now takes a DrivingContext as the parameter
-    public AutonomeStoppingState(DrivingContext context)
-    {
-        _context = context;
-    }
-    public override void Handle(DrivingSystem system)
+    public override void Handle(DrivingSystem system, DrivingContext drivingContext)
     {
         Stop(system);
 
         if (system.CurrentMotorSpeedL == 0 && system.CurrentMotorSpeedR == 0) // Ensure motors are stopped
         {
-            system.SetState(new AutonomeTurningState(_context)); // Start turning
+            system.SetState(AutonomeTurningState.Instance); // Start turning
         }
     }
 }

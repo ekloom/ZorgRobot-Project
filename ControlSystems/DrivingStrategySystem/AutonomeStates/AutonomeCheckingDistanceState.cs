@@ -3,31 +3,23 @@ using RobotProject.ControlSystems.DrivingStrategySystem.BaseStates;
 
 namespace RobotProject.ControlSystems.DrivingStrategySystem.AutonomeStates;
 
-public class AutonomeCheckingDistanceState : DrivingState
+public class AutonomeCheckingDistanceState : DrivingState<AutonomeCheckingDistanceState>
 {
 
-    private readonly DrivingContext _context;
-
-    // Constructor now takes a DrivingContext as the parameter
-    public AutonomeCheckingDistanceState(DrivingContext context)
-    {
-        _context = context;
-    }
-
-    public override void Handle(DrivingSystem system)
+    public override void Handle(DrivingSystem system, DrivingContext drivingContext)
     {
         Stop(system); // Ensure the robot is stationary
-        double currentDistance = _context.ObstacleDetectionSystem.Distance;
+        double currentDistance = drivingContext.ObstacleDetectionSystem.Distance;
 
-        if (currentDistance < _context.SafeDistanceThreshold)
+        if (currentDistance < drivingContext.SafeDistanceThreshold)
         {
-            system.SetState(new AutonomeStoppingState(_context)); // Too close, stop
-            _context.LoggingSystem.LogToLcd("obstacle detected...");
+            system.SetState(AutonomeStoppingState.Instance); // Too close, stop
+            drivingContext.LoggingSystem.LogToLcd("obstacle detected...");
         }
         else
         {
             Stop(system);
-            system.SetState(new AutonomeMovingForwardState(_context)); // Safe to move forward
+            system.SetState(AutonomeMovingForwardState.Instance); // Safe to move forward
         }
     }
 }
