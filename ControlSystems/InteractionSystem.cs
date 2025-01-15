@@ -40,14 +40,16 @@ public class InteractionSystem : IUpdatable
 
   public void Update()
   {
-    if (DateTime.Now - queryStartTime > timeout)
-    {
-      Response = "No response";
-      IsRequesting = false;
-    }
+
 
     if (IsRequesting)
     {
+      if (DateTime.Now - queryStartTime > timeout)
+      {
+        Response = "No response";
+        IsRequesting = false;
+      }
+
       if (ButtonStatus.TimesPressed >= 2)
       {
         IsRequesting = false;
