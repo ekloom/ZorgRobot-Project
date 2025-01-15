@@ -112,7 +112,6 @@ public class ButtonLedController : IUpdatable
 
     if (IsLedFlickering && flickerCount <= _timesToFlicker && (DateTime.Now - lastTimeFlickerd) >= flickerInterval)
     {
-
       lastTimeFlickerd = DateTime.Now;
 
       if (!buttonStatus.IsLedOn)
