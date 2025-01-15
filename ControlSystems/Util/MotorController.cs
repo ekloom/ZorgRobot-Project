@@ -7,13 +7,16 @@ public abstract class MotorController : IUpdatable
 
   private MotorMode _motorMode;
 
+  protected short CurrentMotorSpeedL { get; private set; }
 
-  protected short _targetSpeedL;
-  protected short _targetSpeedR;
-  private short CurrentMotorSpeedL;
-  private short CurrentMotorSpeedR;
+  protected short CurrentMotorSpeedR { get; private set; }
 
-  private readonly Queue<MotorCommand> _commandQueue;
+  protected short TargetSpeedL { get; private set; }
+
+  protected short TargetSpeedR { get; private set; }
+
+
+  private readonly Queue<MotorSettings> _commandQueue;
 
   private bool _IsCommandActive;
 
@@ -28,31 +31,14 @@ public abstract class MotorController : IUpdatable
   /// </summary>
   /// <param name="speed">0.0 = stop, -1.0 = full speed reverse, 1.0 = full speed forward</param>
   /// <param name="direction"></param>
-  public void Drive(double speed, Direction direction)
+  public void Drive(Direction direction, double speed)
   {
+    ApplyMotorSettings(new MotorSettings(direction, speed));
+  }
 
-    if (_commandQueue.Count > 5) return;
-
-
-    // Avoid adding duplicates
-    if (_commandQueue.Count > 0)
-    {
-      var lastCommand = _commandQueue.Last();
-      if (lastCommand.Speed == speed && lastCommand.Direction == direction)
-      {
-        // Adjust the last command instead of adding a new one
-        lastCommand.Speed = speed;
-
-        // Skip adding the new command if it's identical to the last one
-        Console.WriteLine("Duplicate command ignored.");
-        return;
-      }
-    }
-
-    var command = new MotorCommand(speed, direction);
-    _commandQueue.Enqueue(command);
-    Console.WriteLine("CommandQueue Size: {0}", _commandQueue.Count);
-
+  public void Stop()
+  {
+    ApplyMotorSettings(new MotorSettings(Direction.None, 0));
   }
 
   public void ResetMotors()
@@ -65,46 +51,47 @@ public abstract class MotorController : IUpdatable
   }
 
 
-  private void SetMotorSettings(double Speed, Direction direction, MotorMode motorMode)
+  private void ApplyMotorSettings(MotorSettings motorSettings)
   {
 
     short leftSpeed = 0;
     short rightSpeed = 0;
 
-    short speedConvertion = (short)Math.Round(Speed * 300.0);
+    short speedConvertion = (short)Math.Round(motorSettings.Speed * 300.0);
 
-    if (direction.HasFlag(Direction.Forward))
+    if (motorSettings.Direction.HasFlag(Direction.Forward))
     {
       leftSpeed += speedConvertion;
       rightSpeed += speedConvertion;
     }
 
-    if (direction.HasFlag(Direction.Backwards))
+    if (motorSettings.Direction.HasFlag(Direction.Backwards))
     {
       leftSpeed -= speedConvertion;
       rightSpeed -= speedConvertion;
     }
 
-    if (direction.HasFlag(Direction.Right))
+    if (motorSettings.Direction.HasFlag(Direction.Right))
     {
       rightSpeed += speedConvertion;
       leftSpeed -= (short)(speedConvertion / 2);
     }
 
-    if (direction.HasFlag(Direction.Left))
+    if (motorSettings.Direction.HasFlag(Direction.Left))
     {
       leftSpeed += speedConvertion;
       rightSpeed -= (short)(speedConvertion / 2);
     }
 
-    _targetSpeedL = leftSpeed;
-    _targetSpeedR = rightSpeed;
+    TargetSpeedL = leftSpeed;
+    TargetSpeedR = rightSpeed;
 
-    _motorMode = motorMode;
+    _motorMode = motorSettings.MotorMode;
   }
 
-  void GradualDrive(short targetSpeedL, short targetSpeedR, short step)
+  private void GradualDrive(short targetSpeedL, short targetSpeedR, short step)
   {
+
     // Adjust the left motor speed
     if (CurrentMotorSpeedL < targetSpeedL)
     {
@@ -132,15 +119,15 @@ public abstract class MotorController : IUpdatable
     // Apply the speeds to the motors
     SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
 
+    Robot.Wait(10); // Small delay to smooth out the transition
   }
-
 
   public void SetMotorSpeed(short SpeedL, short SpeedR)
   {
     try
     {
       Robot.Motors(SpeedL, SpeedR);
-      if (CurrentMotorSpeedL == _targetSpeedL && CurrentMotorSpeedR == _targetSpeedR) _IsCommandActive = false;
+      if (CurrentMotorSpeedL == TargetSpeedL && CurrentMotorSpeedR == TargetSpeedR) _IsCommandActive = false;
     }
     catch (IOException ex)
     {
@@ -152,32 +139,14 @@ public abstract class MotorController : IUpdatable
   public virtual void Update()
   {
 
-    if (!_IsCommandActive && _commandQueue.Count > 0)
-    {
-      var command = _commandQueue.Dequeue();
-      SetMotorSettings(command.Speed, command.Direction, command.MotorMode);
-      _IsCommandActive = true;
-    }
-
-    // Existing switch logic here...
     switch (_motorMode)
     {
       case MotorMode.stop:
-        // if (CurrentMotorSpeedL != 0 || CurrentMotorSpeedR != 0)
-        // {
-        //   GradualDrive(0, 0, 2);
-        // }
-
         GradualDrive(0, 0, 5);
         break;
 
       case MotorMode.Run:
-        // if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
-        // {
-        //   GradualDrive(_targetSpeedL, _targetSpeedR, 2);
-        // }
-
-        GradualDrive(_targetSpeedL, _targetSpeedR, 5);
+        GradualDrive(TargetSpeedL, TargetSpeedR, 5);
         break;
     }
 
@@ -186,7 +155,7 @@ public abstract class MotorController : IUpdatable
 
 }
 
-public class MotorCommand
+public class MotorSettings
 {
   public Direction Direction { get; }
   public MotorMode MotorMode { get; }
@@ -213,7 +182,7 @@ public class MotorCommand
     }
   }
 
-  public MotorCommand(double speed, Direction direction)
+  public MotorSettings(Direction direction, double speed)
   {
     Direction = direction;
     Speed = speed;
