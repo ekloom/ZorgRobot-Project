@@ -9,7 +9,7 @@ public class LoggingSystem
 
   private LCD16x2 LCD;
 
-  static string tempMessage;
+  static string? tempMessage;
 
   public LoggingSystem(byte pinNumber)
   {
