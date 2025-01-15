@@ -9,19 +9,16 @@ internal class DrivingSystem : MotorController
     private readonly LoggingSystem _loggingSystem;
     private bool isEmergencyStop;
 
-    private bool _isScanning;
-    private int _scanstep = 20;
-    private float _lastDetectedDistance = 0;
-    private int _targetAngle = 0;
-    private int _totalRotation = 0;
-
-    private int _maxDistanceFromPerson = 250;
-    private int _minDistanceFromObstacle = 30;
+    private ObjectdectionState _currentState;
+    private double _previousDistance;
+    private double _currentDistance;
 
 
     public DrivingMode DrivingMode { get; set; }
     public bool IsPersonFound { get; private set; }
     public bool HasPerformedScan { get; private set; }
+
+    int SafeDistanceThreshold = 20;
 
     // private readonly PIRMotion pIRMotion;
 
@@ -33,18 +30,15 @@ internal class DrivingSystem : MotorController
         _obstacleDetectionSystem = obstacleDetectionSystem;
         _loggingSystem = loggingSystem;
         SetMotorSpeed(0, 0); // Set motor speed to 0
+        DrivingMode = DrivingMode.Idle;
+        _currentState = ObjectdectionState.Idle;
     }
 
     public void Reset()
     {
         ResetMotors();
         isEmergencyStop = false; // Reset the emergency stop flag
-        DrivingMode = DrivingMode.Idle; // Set the driving mode to Autonome
-    }
-
-    public void Stop()
-    {
-        Drive(0, Direction.None);
+        DrivingMode = DrivingMode.Idle;
     }
 
     public void EmergencyStop()
@@ -55,113 +49,118 @@ internal class DrivingSystem : MotorController
         System.Console.WriteLine("EmergencyStop activated!");
     }
 
-    public void DriveAutonome()
+
+    bool HasTurnedEnough()
     {
+        // Check the current distance from the ultrasonic sensor
+        double frontDistance = _obstacleDetectionSystem.Distance;
 
-        int distance = _obstacleDetectionSystem.Distance;
-
-        if (distance <= _minDistanceFromObstacle)
-        {
-            Stop();
-            Drive(20, Direction.Left);
-            _loggingSystem.LogToLcd($"Obstacle close up: {distance}");
-        }
-        else
-        {
-
-            Drive(30, Direction.Forward);
-        }
-
-        _loggingSystem.LogToLcd($"Obstacle detected at: {distance}");
-    }
-
-    public void StartScanning()
-    {
-        _totalRotation = 0; // Reset the total rotation counter
-        _scanstep = 45; // Setting the scan step to 45 degrees
-        _isScanning = true; // Setting the scanning flag to true
-        HasPerformedScan = false; // Reset the scan flag
-
-        lastScanTime = DateTime.Now;
-        _lastDetectedDistance = float.MaxValue; // Reset the last detected distance
-        // DrivingMode = DrivingMode.FollowPerson; // Set the driving mode to follow person
+        // Return true if the front distance is above a safe threshold
+        return frontDistance > SafeDistanceThreshold;
     }
 
 
-    const int waitTimeMs = 1000; // 1 second wait
-    void PerformScanning()
+    private bool IsDistanceChanging(double currentDistance, double previousDistance)
     {
-        if (!_isScanning) return;
-
-
-        _totalRotation += _scanstep;
-
-        //Time to wait till its 90 degrees
-        if ((DateTime.Now - lastScanTime).TotalMilliseconds < 5000)
-        {
-            Stop();
-        }
-        else
-        {
-            Drive((short)_scanstep, Direction.Left);
-            // // Update the last scan time
-        }
-
-
-        // Check if enough time has passed
-        if ((DateTime.Now - lastScanTime).TotalMilliseconds < waitTimeMs)
-        {
-
-            // Gets the current distance to a osbtacle
-            int currentDistance = _obstacleDetectionSystem.Distance;
-
-
-            // This means that something is moving away
-            if (currentDistance > _lastDetectedDistance)
-            {
-
-            }
-
-            _lastDetectedDistance = currentDistance;
-
-
-            // Continue waiting
-            return;
-        }
-
-        // // Update the last scan time
-        // lastScanTime = DateTime.Now;
-
-
-        // Stop scanning if a full rotation is completed or a close distance is detected
-        if (_totalRotation >= 360 || (_lastDetectedDistance > _minDistanceFromObstacle && _lastDetectedDistance < _maxDistanceFromPerson))
-        {
-
-        }
+        return currentDistance > previousDistance || currentDistance < previousDistance;
     }
 
 
+    void DriveAutonome()
+    {
+        switch (_currentState)
+        {
+            case ObjectdectionState.Idle:
+                // The robot is idle, do nothing
+                Stop();
+                break;
+
+            case ObjectdectionState.CheckingDistance:
+                Stop(); // Ensure the robot is stationary
+                _currentDistance = _obstacleDetectionSystem.Distance; // Get the current distance to the nearest obstacle
+                if (_currentDistance < SafeDistanceThreshold) // If too close to an obstacle
+                {
+                    _currentState = ObjectdectionState.Stopping; // Transition to stopping
+                }
+                else
+                {
+                    _currentState = ObjectdectionState.MovingForward; // Safe to move forward
+                }
+                break;
+
+            case ObjectdectionState.Stopping:
+                Stop(); // Stop all motion
+                if (CurrentMotorSpeedL == 0 && CurrentMotorSpeedR == 0) // Ensure the motors are stopped
+                {
+                    _currentState = ObjectdectionState.Turning; // Transition to turning
+                }
+                break;
+
+            case ObjectdectionState.Turning:
+                Drive(Direction.Right, 0.5); // Turn to avoid the obstacle
+                if (HasTurnedEnough()) // A method to check if the robot has turned sufficiently
+                {
+                    _currentState = ObjectdectionState.CheckingDistance; // Re-check the distance after turning
+                }
+                break;
+
+            case ObjectdectionState.MovingForward:
+                Drive(Direction.Forward, 0.5); // Move forward cautiously
+                _currentDistance = _obstacleDetectionSystem.Distance; // Continuously check distance
+                if (_currentDistance < SafeDistanceThreshold) // Obstacle detected
+                {
+                    _currentState = ObjectdectionState.Stopping; // Transition to stopping
+                }
+                break;
+        }
+    }
     void FollowPerson()
     {
-        int distance = _obstacleDetectionSystem.Distance;
-
-        // Check if the person is within the updated range
-        if (distance > _minDistanceFromObstacle && distance < _maxDistanceFromPerson)
+        switch (_currentState)
         {
-            Drive(50, Direction.Forward); // Keep following the person
-            _loggingSystem.LogToLcd("Following person...");
+            case ObjectdectionState.Stopping:
+                Stop();
+                if (CurrentMotorSpeedL == 0 && CurrentMotorSpeedR == 0)
+                {
+                    _currentState = ObjectdectionState.Turning; // Transition to turning
+                }
+                break;
 
-            // Dynamically adjust the follow range as the person moves
-            _minDistanceFromObstacle = Math.Max((int)(distance * 0.8), 40); // Minimum distance is 80% of current
-            _maxDistanceFromPerson = Math.Min((int)(distance * 1.5), 400); // Maximum distance is 150% of current
+            case ObjectdectionState.Turning:
+                Drive(Direction.Right, 0.5); // Start turning
+                if (CurrentMotorSpeedL == TargetSpeedL && CurrentMotorSpeedR == TargetSpeedR)
+                {
+                    _currentState = ObjectdectionState.CheckingDistance; // Transition to checking distance
+                }
+                break;
 
-            Console.WriteLine("Updated Distances While Following - Min: {0}, Max: {1}", _minDistanceFromObstacle, _maxDistanceFromPerson);
-        }
-        else
-        {
-            // Lost person, start scanning again
-            _loggingSystem.LogToLcd("Lost person, starting scan...");
-            StartScanning();
+            case ObjectdectionState.CheckingDistance:
+                Stop(); // Stop the motors
+                _currentDistance = _obstacleDetectionSystem.Distance; // Check distance
+                if (IsDistanceChanging(_currentDistance, _previousDistance))
+                {
+                    _currentState = ObjectdectionState.MovingForward; // Transition to moving forward
+                }
+                else
+                {
+                    _currentState = ObjectdectionState.Stopping; // Repeat the process
+                }
+                _previousDistance = _currentDistance;
+                break;
+
+            case ObjectdectionState.MovingForward:
+                Drive(Direction.Forward, 0.5); // Move forward
+                _currentDistance = _obstacleDetectionSystem.Distance; // Check distance
+                if (!IsDistanceChanging(_currentDistance, _previousDistance))
+                {
+                    _currentState = ObjectdectionState.Stopping; // Stop and re-evaluate
+                }
+                _previousDistance = _currentDistance;
+                break;
+
+            case ObjectdectionState.Idle:
+                Stop();
+                break;
         }
     }
 
@@ -185,11 +184,6 @@ internal class DrivingSystem : MotorController
                     break;
             }
 
-            if (_isScanning)
-            {
-                PerformScanning();
-            }
-
             base.Update();
         }
     }
@@ -203,4 +197,12 @@ public enum DrivingMode
     FollowPerson
 }
 
+public enum ObjectdectionState
+{
+    Stopping,
+    Turning,
+    CheckingDistance,
+    MovingForward,
+    Idle
+}
 
