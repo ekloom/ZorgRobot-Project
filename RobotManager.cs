@@ -63,6 +63,7 @@ namespace RobotProject
             isInitializing = true;
 
 
+            // commandHandler.AddCommand("start", () => drivingSystem.DrivingMode = DrivingMode.FollowPerson);
             commandHandler.AddCommand("start", () => drivingSystem.DrivingMode = DrivingMode.Autonome);
             commandHandler.AddCommand("stop", () => drivingSystem.DrivingMode = DrivingMode.Idle);
             commandHandler.AddCommand("reset", () => drivingSystem.Reset());
@@ -73,7 +74,7 @@ namespace RobotProject
 
                 string command = e.ToLower();
 
-                interactionSystem.Query("#");
+                // interactionSystem.Query("#");
 
                 // this is for the interaction logic
                 if (command.Contains("#"))
@@ -95,11 +96,16 @@ namespace RobotProject
 
         public async void Update()
         {
-            // Perform component updates
-            foreach (var component in _components)
-            {
-                component.Update();
-            }
+
+            obstacleDetectionSystem.Update();
+            buttonLedController.Update();
+            interactionSystem.Update();
+            drivingSystem.Update();
+            // // Perform component updates
+            // foreach (var component in _components)
+            // {
+            //     component.Update();
+            // }
 
             if (buttonLedController.GetButtonStatus().PressingDuration >= 1000)
             {
@@ -116,8 +122,6 @@ namespace RobotProject
             if (isInitializing)
             {
                 // initializing manouvre
-
-
                 isInitializing = false;
             }
 
