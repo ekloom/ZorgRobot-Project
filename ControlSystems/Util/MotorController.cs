@@ -5,15 +5,16 @@ namespace RobotProject.ControlSystems.Util;
 public abstract class MotorController : IUpdatable
 {
 
-  protected MotorMode _motorMode;
+  private MotorMode _motorMode;
 
 
   protected short _targetSpeedL;
   protected short _targetSpeedR;
-  protected short CurrentMotorSpeedL;
-  protected short CurrentMotorSpeedR;
+  private short CurrentMotorSpeedL;
+  private short CurrentMotorSpeedR;
 
   private readonly Queue<MotorCommand> _commandQueue;
+
   private bool _IsCommandActive;
 
   public MotorController()
@@ -22,61 +23,84 @@ public abstract class MotorController : IUpdatable
     _IsCommandActive = false;
   }
 
-  private const int MaxQueueSize = 20;
-
-  // Enqueues the command
-  public void Drive(Direction direction, short speed)
+  /// <summary>
+  /// This will enqeue the drive method
+  /// </summary>
+  /// <param name="speed">0.0 = stop, -1.0 = full speed reverse, 1.0 = full speed forward</param>
+  /// <param name="direction"></param>
+  public void Drive(double speed, Direction direction)
   {
-    if (_commandQueue.Count >= MaxQueueSize)
+
+    if (_commandQueue.Count > 5) return;
+
+
+    // Avoid adding duplicates
+    if (_commandQueue.Count > 0)
     {
-      _commandQueue.Dequeue(); // Discard the oldest command
+      var lastCommand = _commandQueue.Last();
+      if (lastCommand.Speed == speed && lastCommand.Direction == direction)
+      {
+        // Adjust the last command instead of adding a new one
+        lastCommand.Speed = speed;
+
+        // Skip adding the new command if it's identical to the last one
+        Console.WriteLine("Duplicate command ignored.");
+        return;
+      }
     }
-    _commandQueue.Enqueue(new MotorCommand(direction, speed));
+
+    var command = new MotorCommand(speed, direction);
+    _commandQueue.Enqueue(command);
     Console.WriteLine("CommandQueue Size: {0}", _commandQueue.Count);
+
   }
 
   public void ResetMotors()
   {
     _commandQueue.Clear();
     _IsCommandActive = false;
+    _motorMode = MotorMode.stop;
+    CurrentMotorSpeedL = 0; // Set 'CurrentMotorSpeedL' to 0
+    CurrentMotorSpeedR = 0; // Set 'CurrentMotorSpeedR' to 0
   }
 
 
-  private void ExecuteDrive(Direction direction, short Speed)
+  private void SetMotorSettings(double Speed, Direction direction, MotorMode motorMode)
   {
 
     short leftSpeed = 0;
     short rightSpeed = 0;
 
+    short speedConvertion = (short)Math.Round(Speed * 300.0);
+
     if (direction.HasFlag(Direction.Forward))
     {
-      leftSpeed += Speed;
-      rightSpeed += Speed;
+      leftSpeed += speedConvertion;
+      rightSpeed += speedConvertion;
     }
 
     if (direction.HasFlag(Direction.Backwards))
     {
-      leftSpeed -= Speed;
-      rightSpeed -= Speed;
+      leftSpeed -= speedConvertion;
+      rightSpeed -= speedConvertion;
     }
 
     if (direction.HasFlag(Direction.Right))
     {
-      // only if forward and right angles is requested the same time
-      rightSpeed += Speed;
-      leftSpeed -= Speed;
+      rightSpeed += speedConvertion;
+      leftSpeed -= (short)(speedConvertion / 2);
     }
 
     if (direction.HasFlag(Direction.Left))
     {
-      rightSpeed -= Speed;
-      leftSpeed += Speed;
+      leftSpeed += speedConvertion;
+      rightSpeed -= (short)(speedConvertion / 2);
     }
 
     _targetSpeedL = leftSpeed;
     _targetSpeedR = rightSpeed;
 
-    _motorMode = MotorMode.Run;
+    _motorMode = motorMode;
   }
 
   void GradualDrive(short targetSpeedL, short targetSpeedR, short step)
@@ -108,7 +132,6 @@ public abstract class MotorController : IUpdatable
     // Apply the speeds to the motors
     SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
 
-    if (CurrentMotorSpeedL == targetSpeedL && CurrentMotorSpeedR == targetSpeedR) _IsCommandActive = false;
   }
 
 
@@ -117,11 +140,11 @@ public abstract class MotorController : IUpdatable
     try
     {
       Robot.Motors(SpeedL, SpeedR);
+      if (CurrentMotorSpeedL == _targetSpeedL && CurrentMotorSpeedR == _targetSpeedR) _IsCommandActive = false;
     }
     catch (IOException ex)
     {
       Console.WriteLine($"I2C communication error: {ex.Message}");
-      // Optional: implement a retry mechanism
       Robot.Wait(100); // Add a small delay before retrying
     }
 
@@ -132,7 +155,7 @@ public abstract class MotorController : IUpdatable
     if (!_IsCommandActive && _commandQueue.Count > 0)
     {
       var command = _commandQueue.Dequeue();
-      ExecuteDrive(command.Direction, command.Speed);
+      SetMotorSettings(command.Speed, command.Direction, command.MotorMode);
       _IsCommandActive = true;
     }
 
@@ -140,17 +163,21 @@ public abstract class MotorController : IUpdatable
     switch (_motorMode)
     {
       case MotorMode.stop:
-        if (CurrentMotorSpeedL != 0 || CurrentMotorSpeedR != 0)
-        {
-          GradualDrive(0, 0, 5);
-        }
+        // if (CurrentMotorSpeedL != 0 || CurrentMotorSpeedR != 0)
+        // {
+        //   GradualDrive(0, 0, 2);
+        // }
+
+        GradualDrive(0, 0, 5);
         break;
 
       case MotorMode.Run:
-        if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
-        {
-          GradualDrive(_targetSpeedL, _targetSpeedR, 5);
-        }
+        // if (CurrentMotorSpeedL != _targetSpeedL || CurrentMotorSpeedR != _targetSpeedR)
+        // {
+        //   GradualDrive(_targetSpeedL, _targetSpeedR, 2);
+        // }
+
+        GradualDrive(_targetSpeedL, _targetSpeedR, 5);
         break;
     }
 
@@ -162,12 +189,35 @@ public abstract class MotorController : IUpdatable
 public class MotorCommand
 {
   public Direction Direction { get; }
-  public short Speed { get; }
+  public MotorMode MotorMode { get; }
 
-  public MotorCommand(Direction direction, short speed)
+  private double _Speed;
+  public double Speed
+  {
+    get
+    {
+      return _Speed;
+    }
+    set
+    {
+      if (value <= -1.0)
+      {
+        value = -1.0;
+      }
+      else if (value >= 1.0)
+      {
+        value = 1.0;
+      }
+
+      _Speed = value;
+    }
+  }
+
+  public MotorCommand(double speed, Direction direction)
   {
     Direction = direction;
     Speed = speed;
+    MotorMode = direction == Direction.None ? MotorMode.stop : MotorMode.Run;
   }
 }
 
@@ -180,6 +230,7 @@ public enum MotorMode
 [Flags]
 public enum Direction
 {
+  None = 0,
   Forward = 1,
   Backwards = 2,
   Left = 4,
