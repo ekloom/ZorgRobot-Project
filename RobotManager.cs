@@ -8,7 +8,7 @@ namespace RobotProject
 {
     public class RobotManager : IUpdatable
     {
-        private readonly List<IUpdatable> _components;
+        // private readonly List<IUpdatable> _components;
 
         // Controllers and systems
         private readonly DrivingSystem drivingSystem;
@@ -37,19 +37,19 @@ namespace RobotProject
 
             obstacleDetectionSystem = new ObstacleDetectionSystem(16);
 
-            drivingSystem = new DrivingSystem(obstacleDetectionSystem, loggingSystem);
+            drivingSystem = new DrivingSystem(obstacleDetectionSystem, loggingSystem, new PIRMotion(18, 100, 15));
 
             interactionSystem = new InteractionSystem(buttonLedController, 10);
 
             commandHandler = new CommandHandler();
 
 
-            _components = new List<IUpdatable>{
-                obstacleDetectionSystem,
-                buttonLedController,
-                drivingSystem,
-                interactionSystem
-            };
+            // _components = new List<IUpdatable>{
+            //     obstacleDetectionSystem,
+            //     buttonLedController,
+            //     drivingSystem,
+            //     interactionSystem
+            // };
 
 
         }
@@ -62,8 +62,6 @@ namespace RobotProject
 
             isInitializing = true;
 
-
-            // commandHandler.AddCommand("start", () => drivingSystem.DrivingMode = DrivingMode.FollowPerson);
             commandHandler.AddCommand("start", () => drivingSystem.DrivingMode = DrivingMode.Autonome);
             commandHandler.AddCommand("stop", () => drivingSystem.DrivingMode = DrivingMode.Idle);
             commandHandler.AddCommand("reset", () => drivingSystem.Reset());

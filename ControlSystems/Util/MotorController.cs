@@ -7,24 +7,14 @@ public abstract class MotorController : IUpdatable
 
   private MotorMode _motorMode;
 
-  protected short CurrentMotorSpeedL { get; private set; }
+  internal short CurrentMotorSpeedL { get; private set; }
 
-  protected short CurrentMotorSpeedR { get; private set; }
+  internal short CurrentMotorSpeedR { get; private set; }
 
-  protected short TargetSpeedL { get; private set; }
+  internal short TargetSpeedL { get; private set; }
 
-  protected short TargetSpeedR { get; private set; }
+  internal short TargetSpeedR { get; private set; }
 
-
-  private readonly Queue<MotorSettings> _commandQueue;
-
-  private bool _IsCommandActive;
-
-  public MotorController()
-  {
-    _commandQueue = new();
-    _IsCommandActive = false;
-  }
 
   /// <summary>
   /// This will enqeue the drive method
@@ -43,8 +33,6 @@ public abstract class MotorController : IUpdatable
 
   public void ResetMotors()
   {
-    _commandQueue.Clear();
-    _IsCommandActive = false;
     _motorMode = MotorMode.stop;
     CurrentMotorSpeedL = 0; // Set 'CurrentMotorSpeedL' to 0
     CurrentMotorSpeedR = 0; // Set 'CurrentMotorSpeedR' to 0
@@ -59,25 +47,25 @@ public abstract class MotorController : IUpdatable
 
     short speedConvertion = (short)Math.Round(motorSettings.Speed * 300.0);
 
-    if (motorSettings.Direction.HasFlag(Direction.Forward))
+    if (motorSettings.Direction == Direction.Forward)
     {
       leftSpeed += speedConvertion;
       rightSpeed += speedConvertion;
     }
 
-    if (motorSettings.Direction.HasFlag(Direction.Backwards))
+    if (motorSettings.Direction == Direction.Backwards)
     {
       leftSpeed -= speedConvertion;
       rightSpeed -= speedConvertion;
     }
 
-    if (motorSettings.Direction.HasFlag(Direction.Right))
+    if (motorSettings.Direction == Direction.Right)
     {
       rightSpeed += speedConvertion;
       leftSpeed -= (short)(speedConvertion / 2);
     }
 
-    if (motorSettings.Direction.HasFlag(Direction.Left))
+    if (motorSettings.Direction == Direction.Left)
     {
       leftSpeed += speedConvertion;
       rightSpeed -= (short)(speedConvertion / 2);
@@ -91,6 +79,8 @@ public abstract class MotorController : IUpdatable
 
   private void GradualDrive(short targetSpeedL, short targetSpeedR, short step)
   {
+    // Apply the speeds to the motors
+    SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
 
     // Adjust the left motor speed
     if (CurrentMotorSpeedL < targetSpeedL)
@@ -116,10 +106,7 @@ public abstract class MotorController : IUpdatable
       if (CurrentMotorSpeedR < targetSpeedR) CurrentMotorSpeedR = targetSpeedR;
     }
 
-    // Apply the speeds to the motors
-    SetMotorSpeed(CurrentMotorSpeedL, CurrentMotorSpeedR);
-
-    Robot.Wait(10); // Small delay to smooth out the transition
+    Console.WriteLine("Current speed left motor: {0}, Current speed right motor: {1}", CurrentMotorSpeedL, CurrentMotorSpeedR);
   }
 
   public void SetMotorSpeed(short SpeedL, short SpeedR)
@@ -127,7 +114,6 @@ public abstract class MotorController : IUpdatable
     try
     {
       Robot.Motors(SpeedL, SpeedR);
-      if (CurrentMotorSpeedL == TargetSpeedL && CurrentMotorSpeedR == TargetSpeedR) _IsCommandActive = false;
     }
     catch (IOException ex)
     {
@@ -142,7 +128,7 @@ public abstract class MotorController : IUpdatable
     switch (_motorMode)
     {
       case MotorMode.stop:
-        GradualDrive(0, 0, 5);
+        GradualDrive(0, 0, 20);
         break;
 
       case MotorMode.Run:

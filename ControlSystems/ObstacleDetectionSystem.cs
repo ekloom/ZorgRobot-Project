@@ -2,7 +2,7 @@
 
 namespace RobotProject.ControlSystems
 {
-    internal class ObstacleDetectionSystem : IUpdatable
+    public class ObstacleDetectionSystem : IUpdatable
     {
 
         public int Distance { get; private set; }
