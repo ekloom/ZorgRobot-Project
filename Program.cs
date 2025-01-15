@@ -13,16 +13,6 @@ using GyroscopeCompass.GyroscopeCompass;
 
 
 
-// var builder = new ConfigurationBuilder()
-// .SetBasePath(Directory.GetCurrentDirectory())
-//             .AddUserSecrets<Program>()
-//             ;
-
-// IConfiguration config = builder.Build();
-
-
-// System.Console.WriteLine(config.GetSection("HiveMQ").Exists());
-
 var RobotManager = new RobotManager();
 
 await RobotManager.Init();
