@@ -10,11 +10,11 @@ public class DrivingSystem : MotorController
 {
 
     private DrivingContext _context;
-    private IDrivingState _currentState;
+    private IDrivingState? _currentState;
 
     public DrivingMode DrivingMode { get; set; }
 
-    private bool isEmergencyStop;
+    public bool isEmergencyStop { get; private set; }
 
     private readonly PIRMotion PIRMotion;
 
@@ -46,6 +46,11 @@ public class DrivingSystem : MotorController
         System.Console.WriteLine("EmergencyStop activated!");
     }
 
+    public void SetSpeed(double speed = 0.25)
+    {
+        _context.MotorSpeed = speed;
+    }
+
     public void SetState(IDrivingState newState)
     {
         _currentState = newState;
@@ -56,8 +61,7 @@ public class DrivingSystem : MotorController
         switch (DrivingMode)
         {
             case DrivingMode.Autonome:
-                // Only set to AutonomeIdleState if the current state is not AutonomeMovingForwardState
-                // and the system hasn't just transitioned from FollowPerson mode
+                // Only set to AutonomeIdleState if the current state is not FollowPersonIdleState or _currentState == null
                 if (_currentState == null || (_currentState is FollowPersonIdleState))
                 {
                     _currentState = new AutonomeIdleState();
@@ -65,6 +69,8 @@ public class DrivingSystem : MotorController
                 break;
 
             case DrivingMode.FollowPerson:
+
+                // Only set to AutonomeIdleState if the current state is not AutonomeIdleState or _currentState == null
                 if (_currentState == null || (_currentState is AutonomeIdleState))
                 {
                     _currentState = new FollowPersonIdleState();
@@ -72,6 +78,7 @@ public class DrivingSystem : MotorController
                 break;
 
             case DrivingMode.Idle:
+                _currentState = null;
                 Stop();
                 break;
         }

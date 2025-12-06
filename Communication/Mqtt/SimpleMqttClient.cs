@@ -155,13 +155,13 @@ public class SimpleMqttClient : IDisposable
 
         var mqttWrapper = new SimpleMqttClient(new()
         {
-            Host = "99cba3f1321a43acbf17b4553dd71dca.s1.eu.hivemq.cloud", // maak eventueel een account aan bij hivemq als dit problemen geeft.
+            Host = "", // maak eventueel een account aan bij hivemq als dit problemen geeft.
             Port = 8883,
             CleanStart = false, // <--- false, haalt al gebufferde meldingen ook op.
             ClientId = clientId, // Dit clientid moet uniek zijn binnen de broker
             TimeoutInMs = 5_000, // Standaard time-out bij het maken van een verbinding (5 seconden)
-            UserName = "ZRPA_98a3Xb",
-            Password = "4&7ZQvPY7ykEN422TcHx"
+            UserName = "",
+            Password = ""
         });
 
         return mqttWrapper;

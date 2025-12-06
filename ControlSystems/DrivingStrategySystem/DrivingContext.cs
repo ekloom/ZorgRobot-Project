@@ -10,7 +10,8 @@ namespace RobotProject.ControlSystems.DrivingStrategySystem
         public LoggingSystem LoggingSystem { get; }
         public PIRMotion PIRMotion { get; }
         public double PreviousDistance { get; set; }
-        public int SafeDistanceThreshold { get; set; } = 40;
+        public int SafeDistanceThreshold { get; set; } = 50;
+        public double MotorSpeed { get; set; } = 0.25;
 
         // Constructor with DI for ObstacleDetectionSystem
         public DrivingContext(ObstacleDetectionSystem obstacleDetectionSystem, LoggingSystem loggingSystem, PIRMotion pIRMotion)

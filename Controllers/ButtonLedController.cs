@@ -27,10 +27,10 @@ public class ButtonLedController : IUpdatable
   const int resetTimeOutMs = 3000; // The time out in milliseconds 
 
 
-  public ButtonLedController(int ButtonPinNumber)
+  public ButtonLedController(Button _button, Led _led)
   {
-    button = new Button(ButtonPinNumber);
-    led = new Led(ButtonPinNumber - 1);
+    button = _button;
+    led = _led;
     wasButtonPressed = false;
     buttonStatus = new ButtonStatus();
     buttonPressStartTime = null;
@@ -53,6 +53,20 @@ public class ButtonLedController : IUpdatable
       flickerInterval = TimeSpan.FromSeconds(delayBetweenFlicker);
     }
   }
+
+  public void LedOn(bool turnLedOnn)
+  {
+
+    if (turnLedOnn)
+    {
+      led.SetOn();
+    }
+    else
+    {
+      led.SetOff();
+    }
+  }
+
 
   public void Update()
   {
@@ -132,6 +146,8 @@ public class ButtonLedController : IUpdatable
       buttonStatus.IsLedOn = false;
       led.SetOff();
     }
+
+
 
     // Standard debounce time
     // Robot.Wait(50);

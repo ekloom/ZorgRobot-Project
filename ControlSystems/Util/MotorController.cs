@@ -117,7 +117,7 @@ public abstract class MotorController : IUpdatable
     }
     catch (IOException ex)
     {
-      Console.WriteLine($"I2C communication error: {ex.Message}");
+      Console.WriteLine($"Attempting to set motor speeds: Left={SpeedL}, Right={SpeedR}");
       Robot.Wait(100); // Add a small delay before retrying
     }
 
@@ -128,7 +128,7 @@ public abstract class MotorController : IUpdatable
     switch (_motorMode)
     {
       case MotorMode.stop:
-        GradualDrive(0, 0, 20);
+        GradualDrive(0, 0, 25);
         break;
 
       case MotorMode.Run:
@@ -136,7 +136,7 @@ public abstract class MotorController : IUpdatable
         break;
     }
 
-    Robot.Wait(50);
+    Robot.Wait(100);
   }
 
 }

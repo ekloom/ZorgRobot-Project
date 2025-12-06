@@ -6,15 +6,14 @@ namespace RobotProject.ControlSystems
     {
 
         public int Distance { get; private set; }
-        private int scanInterval = 500;
-
+        private int scanInterval = 250;
 
         private Ultrasonic distanceSensor;
         private PeriodTimer scanIntervalTimer;
 
-        public ObstacleDetectionSystem(int UltrasonicPinNumber)
+        public ObstacleDetectionSystem(Ultrasonic _Ultrasonic)
         {
-            distanceSensor = new Ultrasonic(UltrasonicPinNumber);
+            distanceSensor = _Ultrasonic;
             scanIntervalTimer = new PeriodTimer(scanInterval);
         }
 

@@ -10,14 +10,20 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Avans.StatisticalRobot" Version="1.1.6-beta" />
+		<PackageReference Include="Avans.StatisticalRobot" Version="1.1.7" />
 		<PackageReference Include="HiveMQtt" Version="0.24.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
 		<PackageReference Include="System.Device.Gpio" Version="3.2.0" />
-		<PackageReference Include="System.IO.Ports" Version="9.0.0" />
+		<PackageReference Include="System.IO.Ports" Version="9.0.1" />
 	</ItemGroup>
+
+	<!-- <ItemGroup>
+  <Content Include="Audio\**\*" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup> -->
 
 </Project>

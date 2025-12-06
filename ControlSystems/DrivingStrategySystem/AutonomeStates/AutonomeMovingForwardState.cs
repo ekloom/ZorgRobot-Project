@@ -9,8 +9,10 @@ public class AutonomeMovingForwardState : DrivingState<AutonomeMovingForwardStat
 
     public override void Handle(DrivingSystem system, DrivingContext drivingContext)
     {
-        Drive(system, Direction.Forward, 0.25); // Move forward cautiously
+        Drive(system, Direction.Forward, drivingContext.MotorSpeed); // Move forward cautiously
         double currentDistance = drivingContext.ObstacleDetectionSystem.Distance;
+
+        drivingContext.LoggingSystem.LogToLcd($"The Distance is: {currentDistance}");
 
         if (currentDistance < drivingContext.SafeDistanceThreshold)
         {
