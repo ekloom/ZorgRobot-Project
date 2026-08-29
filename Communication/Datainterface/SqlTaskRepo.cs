@@ -15,7 +15,7 @@ public class SqlTaskRepo
 
     public List<AgendaTaskModel> UpdateList()
     {
-        ListOfTask = sqlInterface.GetListOfData<AgendaTaskModel>("AgendaTask", "[Title]");
+        ListOfTask = sqlInterface.GetListOfData<AgendaTaskModel>("AgendaTask", null);
         // Sort the list by StartTime in ascending order
         ListOfTask = ListOfTask.OrderBy(task => task.StartTime).ToList();
         return ListOfTask;

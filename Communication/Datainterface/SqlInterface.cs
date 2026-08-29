@@ -16,17 +16,23 @@ namespace RobotProject.Services.Datainterface
             _connectionString = AppConfig.Configuration["ConnectionString"];
         }
 
-        public void DeleteData(string tableName, string condition)
+        public void DeleteData(string tableName, Dictionary<string, object> conditions)
         {
-
-            var deleteQuery = $"DELETE FROM [{tableName}] WHERE {condition}";
+            var whereClause = string.Join(" AND ", conditions.Select(c => $"[{c.Key}] = @{c.Key}"));
+            var deleteQuery = $"DELETE FROM [{tableName}] WHERE {whereClause}";
 
             using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(deleteQuery, connection);
 
+            foreach (var condition in conditions)
+            {
+                command.Parameters.AddWithValue($"@{condition.Key}", condition.Value ?? DBNull.Value);
+            }
+
             command.ExecuteNonQuery();
         }
+
 
         /// <summary>
         /// Returns the data with type 'T'
@@ -34,62 +40,74 @@ namespace RobotProject.Services.Datainterface
         /// <typeparam name="T"></typeparam>
         /// <param name="condition"></param>
         /// <returns></returns>
-        public T GetData<T>(string tableName, string condition) where T : class, new()
+        public T GetData<T>(string tableName, Dictionary<string, object> conditions) where T : class, new()
         {
-            var type = typeof(T);  // Gets the type of 'T'
-            tableName = string.IsNullOrEmpty(tableName) ? type.Name : tableName;  // Uses the class name as the table name. Example: User or the tablename in param
-            var properties = type.GetProperties(BindingFlags.Public); // Gets the properties in the class 'T'
+            var type = typeof(T);
+            tableName = string.IsNullOrEmpty(tableName) ? type.Name : tableName;
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
+            var whereClause = conditions != null && conditions.Count > 0
+                ? "WHERE " + string.Join(" AND ", conditions.Select(c => $"[{c.Key}] = @{c.Key}"))
+                : "";
 
-            /* This will form a query with the variables: tableName, columns and parameters.
-              Example: SELECT * FROM [User] VALUES (@Name, @Age, @IsActive)
-            */
-            var selectQuery = $"SELECT * FROM [{tableName}] {condition}";
+            var selectQuery = $"SELECT * FROM [{tableName}] {whereClause}";
 
             using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(selectQuery, connection);
 
+            if (conditions != null)
+            {
+                foreach (var condition in conditions)
+                {
+                    command.Parameters.AddWithValue($"@{condition.Key}", condition.Value ?? DBNull.Value);
+                }
+            }
+
             using var reader = command.ExecuteReader();
             if (reader.Read())
             {
-                // Creates a new object of type 'T' this is why T needs to be able to be Instantiable
                 var obj = new T();
-
-
                 foreach (var prop in properties)
                 {
-                    // Als de data niet null is dan wordt deze if statement true
                     if (!reader.IsDBNull(reader.GetOrdinal(prop.Name)))
                     {
-                        // gets the value which has the property name in reader and assigns the value to the matching property in 'obj'
                         prop.SetValue(obj, reader[prop.Name]);
                     }
                 }
-
-                // Returns the object with values
                 return obj;
             }
             return default;
         }
 
-        public List<T> GetListOfData<T>(string tableName, string condition) where T : class, new()
+        public List<T> GetListOfData<T>(string tableName, Dictionary<string, object> conditions) where T : class, new()
         {
             var type = typeof(T);  // Gets the type of 'T'
             tableName = string.IsNullOrEmpty(tableName) ? type.Name : tableName;  // Uses the class name as the table name. Example: User or the tablename in param
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance); // Gets the properties in the class 'T'
 
 
-            /* This will form a query with the variables: tableName, columns and parameters.
-              Example: SELECT * FROM [User] VALUES (@Name, @Age, @IsActive)
-            */
-            var selectQuery = $"SELECT * FROM [{tableName}] {condition}";
+
+            var whereClause = conditions != null && conditions.Count > 0
+                ? "WHERE " + string.Join(" AND ", conditions.Select(c => $"[{c.Key}] = @{c.Key}"))
+                : "";
+
+            var selectQuery = $"SELECT * FROM [{tableName}] {whereClause}";
 
             var resultList = new List<T>();
 
             using var connection = new SqlConnection(_connectionString);
             connection.Open();
             using var command = new SqlCommand(selectQuery, connection);
+
+            if (conditions != null)
+            {
+                foreach (var condition in conditions)
+                {
+                    command.Parameters.AddWithValue($"@{condition.Key}", condition.Value ?? DBNull.Value);
+                }
+            }
+
 
             using var reader = command.ExecuteReader();
             while (reader.Read())
